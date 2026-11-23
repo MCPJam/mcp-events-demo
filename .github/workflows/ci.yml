@@ -1,0 +1,44 @@
+name: Verify demo
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - run: npm run setup
+      - run: npm --prefix cloudflare ci
+      - run: npm run typecheck && npm --prefix cloudflare run check
+      - run: npm run test:unit
+      - run: npm --prefix cloudflare run build
+      - name: Official client E2E against Node server
+        run: |
+          node --import tsx server.ts >server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID"' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:18889/health; then break; fi
+            sleep 1
+          done
+          npm test
+      - name: Cloudflare session isolation
+        run: |
+          node -e "require('fs').writeFileSync('cloudflare/.dev.vars','DEMO_SESSION_SECRET='+require('crypto').randomBytes(32).toString('hex'))"
+          npm --prefix cloudflare run dev >worker.log 2>&1 &
+          WORKER_PID=$!
+          trap 'kill "$WORKER_PID"' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:18891/health; then break; fi
+            sleep 1
+          done
+          npm run test:isolation

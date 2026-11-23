@@ -1,0 +1,3 @@
+[submodule "vendor/typescript-sdk"]
+	path = vendor/typescript-sdk
+	url = https://github.com/modelcontextprotocol/typescript-sdk.git

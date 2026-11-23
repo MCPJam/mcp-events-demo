@@ -1,0 +1,19 @@
+{
+  "name": "mcpjam-official-events-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "start": "node --import tsx server.ts",
+    "test": "node --import tsx smoke-test.ts",
+    "test:cloudflare": "CREATE_SESSION=1 node --import tsx smoke-test.ts",
+    "test:unit": "node --import tsx --test tests/*.test.ts",
+    "test:isolation": "node --import tsx isolation-test.ts",
+    "typecheck": "tsc --noEmit",
+    "tunnel": "cloudflared tunnel --url http://127.0.0.1:18889"
+  }
+}

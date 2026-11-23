@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mcpjam-events-demo",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-23",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [{ "name": "SESSIONS", "class_name": "EventsDemoSession" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EventsDemoSession"] }],
+  "ratelimits": [
+    {
+      "name": "SESSION_LIMIT",
+      "namespace_id": "721532091",
+      "simple": { "limit": 10, "period": 60 },
+    },
+    {
+      "name": "REQUEST_LIMIT",
+      "namespace_id": "721532092",
+      "simple": { "limit": 300, "period": 60 },
+    },
+  ],
+  "observability": { "enabled": false },
+}

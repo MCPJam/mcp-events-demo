@@ -1,0 +1,79 @@
+import assert from "node:assert/strict";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
+import {
+  EventsClientExtension,
+  type EventSubscription,
+} from "@modelcontextprotocol/client/ext/events";
+
+const url = process.argv[2] ?? "http://127.0.0.1:18891/mcp";
+const clients: Client[] = [];
+const subscriptions: EventSubscription[] = [];
+const deadline = setTimeout(() => {
+  console.error("Isolation test timed out");
+  process.exit(1);
+}, 30_000);
+async function connect() {
+  const response = await fetch(new URL("/sessions", url), { method: "POST" });
+  assert.equal(response.status, 200);
+  const { token } = (await response.json()) as { token: string };
+  const events = new EventsClientExtension();
+  const client = new Client(
+    { name: "isolation-test", version: "1" },
+    {
+      versionNegotiation: { mode: "auto" },
+      extensions: [events],
+    },
+  );
+  clients.push(client);
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL(url), {
+      authProvider: { token: async () => token },
+    }),
+  );
+  return { client, events, token };
+}
+async function first(sub: EventSubscription) {
+  for await (const event of sub) return event;
+  throw new Error("No event");
+}
+try {
+  assert.equal((await fetch(url, { method: "POST" })).status, 401);
+  assert.equal(
+    (
+      await fetch(url, {
+        headers: {
+          Authorization: "Bearer forged",
+          "x-demo-expires-at": "9999999999999",
+        },
+      })
+    ).status,
+    401,
+  );
+  const a = await connect();
+  const b = await connect();
+  assert.notEqual(a.token, b.token);
+  for (const session of [a, b])
+    subscriptions.push(
+      await session.events.subscribe({ name: "demo.ping", delivery: "poll" }),
+    );
+  await a.client.callTool({
+    name: "emit_ping",
+    arguments: { message: "Only A" },
+  });
+  assert.equal((await first(subscriptions[0])).data.message, "Only A");
+  await b.client.callTool({
+    name: "emit_ping",
+    arguments: { message: "Only B" },
+  });
+  assert.equal((await first(subscriptions[1])).data.message, "Only B");
+  console.log(
+    "PASS: missing/forged credentials rejected; two sessions cannot receive each other’s events",
+  );
+} finally {
+  await Promise.allSettled(subscriptions.map((sub) => sub.cancel()));
+  await Promise.allSettled(clients.map((client) => client.close()));
+  clearTimeout(deadline);
+}
