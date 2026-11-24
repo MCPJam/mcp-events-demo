@@ -59,7 +59,7 @@ try {
   for (const name of ["open_show", "cue_scene", "load_show_clip"])
     assert.ok(tools.tools.some(tool => tool.name === name), name);
   const app = await a.client.readResource({ uri: "ui://jensen/show.html" });
-  assert.ok(app.contents[0] && "text" in app.contents[0] && app.contents[0].text.includes("Start the show"));
+  assert.ok(app.contents[0] && "text" in app.contents[0] && app.contents[0].text.includes("jensen.returned"));
   for (const clip of ["cold-open", "stage", "locker-room", "wolf"]) {
     const result = await a.client.callTool({ name: "load_show_clip", arguments: { clip } });
     const mediaUrl = result._meta?.url;
