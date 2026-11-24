@@ -1,9 +1,11 @@
 import { fromJsonSchema, type McpServer } from "@modelcontextprotocol/server";
+import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import type { EventsExtension } from "@modelcontextprotocol/server/ext/events";
 import * as z from "zod/v4";
 
 const scene = z.enum(["stage", "locker-room", "wolf"]);
 type Scene = z.infer<typeof scene>;
+const validator = new CfWorkerJsonSchemaValidator();
 const sceneProperty = { type: "string", enum: scene.options };
 const clip = z.enum(["cold-open", ...scene.options]);
 const titles = {
@@ -24,8 +26,8 @@ export function createJensen(events: EventsExtension, assets: ShowAssets) {
   const event = events.registerEvent("jensen.returned", {
     emitOnly: true,
     description: "A scene cue for the Jensen comeback show. Filter by scene or receive all three.",
-    inputSchema: fromJsonSchema<{scene?: Scene}>({ type: "object", properties: { scene: sceneProperty }, additionalProperties: false }),
-    payloadSchema: fromJsonSchema<{scene: Scene; message: string}>({ type: "object", properties: { scene: sceneProperty, message: { type: "string" } }, required: ["scene", "message"], additionalProperties: false }),
+    inputSchema: fromJsonSchema<{scene?: Scene}>({ type: "object", properties: { scene: sceneProperty }, additionalProperties: false }, validator),
+    payloadSchema: fromJsonSchema<{scene: Scene; message: string}>({ type: "object", properties: { scene: sceneProperty, message: { type: "string" } }, required: ["scene", "message"], additionalProperties: false }, validator),
     match: (_ctx, item, args) => !args.scene || item.data.scene === args.scene,
   });
   return (server: McpServer) => {
