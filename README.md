@@ -100,6 +100,19 @@ DEMO_SESSION_SECRET=your-local-random-secret-at-least-32-characters
 
 Then run `npm --prefix cloudflare run dev` and visit `http://localhost:18891`. Never commit `.dev.vars` or share the session-signing secret.
 
+## Automatic deployments
+
+GitHub Actions runs the verification suite on pushes and pull requests. After a push to `main` passes verification, the `Deploy Cloudflare production` job builds and deploys that exact commit, then checks the live endpoint and session isolation. Pull requests and other branches do not deploy. Production deployments are serialized so an in-progress deployment is not cancelled halfway through.
+
+The repository's `production` environment is restricted to the `main` branch. It needs:
+
+- Environment secret `CLOUDFLARE_API_TOKEN`: a dedicated deployment token, scoped to the target Cloudflare account and custom-domain zone, with the permissions required to deploy Workers and maintain their routes.
+- Environment variable `CLOUDFLARE_ACCOUNT_ID`: the target account ID.
+
+The Worker's `DEMO_SESSION_SECRET` remains in Cloudflare; CI does not generate, read, or rotate it. GitHub's pull-request approval requirement still applies before changes can merge to `main`.
+
+For forks, configure these environment values and change the production URL in the workflow to your own hostname before enabling deployments.
+
 ## Architecture and limits
 
 - `demo.ts`: shared event catalog and manual emission tool, using the official SDK.
