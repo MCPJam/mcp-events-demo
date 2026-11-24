@@ -11,6 +11,21 @@ await client.connect(new StreamableHTTPClientTransport(new URL(
   process.argv[2] ?? `http://127.0.0.1:${port}/mcp`,
 ), { authProvider: { token: async () => getToken() } }));
 try {
+  const opened = await client.callTool({ name: "open_show", arguments: {} });
+  assert.ok(!opened.isError);
+  assert.ok(JSON.stringify(opened).length < 2000, "No MP4 bytes in tool results");
+  const resource = await client.readResource({ uri: "ui://jensen/show.html" });
+  assert.ok(resource.contents[0]._meta?.ui);
+  const manifest = opened._meta?.media;
+  assert.ok(manifest && typeof manifest === "object");
+  for (const url of Object.values(manifest)) {
+    assert.equal(typeof url, "string");
+    const response = await fetch(String(url), { headers: { Range: "bytes=0-127" } });
+    assert.equal(response.status, 206);
+    assert.match(response.headers.get("content-type") ?? "", /video\/mp4/);
+    assert.equal((await response.arrayBuffer()).byteLength, 128);
+  }
+  console.log("Media manifest and all four range requests verified");
   const { events } = await extension.list();
   const descriptor = events.find(item => item.name === "jensen.returned");
   assert.ok(descriptor);

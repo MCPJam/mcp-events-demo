@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --port 18891",
+    "dev": "wrangler dev --port 18891 --local-upstream 127.0.0.1:18891",
     "deploy": "wrangler deploy",
     "check": "tsc --noEmit -p tsconfig.json",
     "build": "wrangler deploy --dry-run --outdir dist"

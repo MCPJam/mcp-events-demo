@@ -13,6 +13,7 @@
     "test:cloudflare": "CREATE_SESSION=1 node --import tsx smoke-test.ts",
     "test:unit": "node --import tsx --test tests/*.test.ts",
     "test:isolation": "node --import tsx isolation-test.ts",
+    "test:control": "node --import tsx jensen-control-smoke.ts",
     "typecheck": "tsc --noEmit",
     "tunnel": "cloudflared tunnel --url http://127.0.0.1:18889",
     "start:show": "JENSEN_SHOW=1 node --import tsx server.ts",

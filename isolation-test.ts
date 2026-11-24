@@ -59,12 +59,18 @@ try {
   for (const name of ["open_show", "cue_scene", "load_show_clip"])
     assert.ok(tools.tools.some(tool => tool.name === name), name);
   const app = await a.client.readResource({ uri: "ui://jensen/show.html" });
-  assert.ok(app.contents[0] && "text" in app.contents[0] && app.contents[0].text.includes("Play cold open"));
+  assert.ok(app.contents[0] && "text" in app.contents[0] && app.contents[0].text.includes("jensen.returned"));
   for (const clip of ["cold-open", "stage", "locker-room", "wolf"]) {
     const result = await a.client.callTool({ name: "load_show_clip", arguments: { clip } });
-    const video = result._meta?.video;
-    assert.ok(typeof video === "string", clip);
-    assert.equal(Buffer.from(video, "base64").toString("ascii", 4, 8), "ftyp");
+    const mediaUrl = result._meta?.url;
+    assert.ok(typeof mediaUrl === "string", clip);
+    assert.ok(JSON.stringify(result).length < 2000, "Media results contain URLs, not video bytes");
+    const response = await fetch(mediaUrl, { headers: { Range: "bytes=0-127" } });
+    assert.equal(response.status, 206);
+    assert.match(response.headers.get("cache-control") ?? "", /public/);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    assert.equal(bytes.length, 128);
+    assert.equal(bytes.toString("ascii", 4, 8), "ftyp");
   }
   const sceneSub = await a.events.subscribe({ name: "jensen.returned", delivery: "poll", arguments: { scene: "stage" } });
   subscriptions.push(sceneSub);

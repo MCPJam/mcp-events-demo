@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preview host</title>
+<style>
+:root{color-scheme:dark;font:14px/1.5 system-ui,sans-serif;color:#e8eae4;background:#151614}
+body{margin:0;display:grid;grid-template-columns:1fr 300px;min-height:100vh}
+.chat{padding:20px;max-width:960px}
+.bar{font:600 11px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#8a8f84;margin-bottom:14px}
+.bubble{background:#1f211d;border:1px solid #2b2e28;border-radius:12px;padding:10px 14px;margin-bottom:12px;color:#c9ccc4;font-size:13px}
+.bubble code{font:12px ui-monospace,monospace;color:#c4f57f}
+iframe{width:100%;border:0;display:block;height:520px}
+aside{border-left:1px solid #2b2e28;padding:20px 16px;background:#111210}
+aside h2{font:600 11px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#8a8f84;margin:0 0 10px}
+.sub{font:12px ui-monospace,monospace;border:1px solid #2b2e28;border-radius:8px;padding:8px 10px;margin-bottom:12px}
+.sub b{color:#c4f57f;font-weight:500}
+ol{list-style:none;padding:0;margin:0;font:12px/1.45 ui-monospace,monospace}
+li{border-top:1px solid #222420;padding:8px 0;color:#c9ccc4}li time{color:#6d7268;display:block}
+.empty{color:#6d7268}
+</style></head><body>
+<div class="chat">
+ <div class="bar">Preview host · stands in for MCPJam</div>
+ <div class="bubble">Tool call <code>open_show</code> → MCP App</div>
+ <iframe id="app" src="../show.html" title="Jensen MCP App"></iframe>
+</div>
+<aside><h2>Events</h2><div class="sub">subscribed · <b>jensen.returned</b></div><ol id="feed"><li class="empty">No deliveries yet.</li></ol></aside>
+<script>
+const frame=document.getElementById('app'),media=Object.fromEntries(['cold-open','stage','locker-room','wolf'].map(n=>[n,new URL(`../cloudflare/assets/media/${n}.mp4`,location.href).href]));
+const send=m=>frame.contentWindow.postMessage({jsonrpc:'2.0',...m},'*');
+addEventListener('message',({source,data})=>{
+ if(source!==frame.contentWindow||data?.jsonrpc!=='2.0')return;
+ if(data.method==='ui/initialize'){send({id:data.id,result:{protocolVersion:'2026-01-26',hostInfo:{name:'preview'}}});send({method:'ui/notifications/tool-result',params:{content:[],_meta:{media}}})}
+ else if(data.method==='tools/call')send({id:data.id,result:{content:[],_meta:{media}}});
+ else if(data.method==='ui/notifications/size-changed')frame.style.height=Math.ceil(data.params.height)+'px';
+});
+new BroadcastChannel('jensen-sim').onmessage=({data})=>{
+ if(data?.type!=='jensen.returned')return;
+ const feed=document.getElementById('feed');feed.querySelector('.empty')?.remove();
+ const li=document.createElement('li');li.innerHTML=`<time>${new Date().toLocaleTimeString([], {hour12:false})}</time>jensen.returned · ${data.data.scene}<br>id ${data.data.eventId.slice(0,8)}`;feed.prepend(li);
+ // A delivered event reaches the app as a tool result, as an MCPJam trigger would surface it.
+ send({method:'ui/notifications/tool-result',params:{content:[{type:'text',text:data.data.message}],structuredContent:data.data,_meta:{media}}});
+};
+</script></body></html>

@@ -10,7 +10,7 @@ Hosted MCP endpoint: **`https://mcp-events.mcpjam.com/mcp`**. Create a session o
 
 The Node server can host a four-clip MCP App and publish the beta event `jensen.returned`.
 In MCPJam Playground, connect the server, select **open_show**, and click **Run**.
-Click **Play cold open**. At the mid-bite pause the app calls **cue_scene** with
+Click **Start the show**. At the mid-bite pause the app calls **cue_scene** with
 `stage` and plays the entrance when the publisher acknowledges it. Check
 **Play the locker room after the stage clip** for the timed follow-up, or click
 **Locker room** or **Wolf speech** to cue a scene manually. Each cue emits
@@ -22,6 +22,23 @@ using **Poll**. Leave the scene argument skipped for every scene, or set it to
 to run instructions on delivery. The stage player and the hosted trigger run
 are independently observable.
 
+### Control room
+
+Open **`/jensen`** on the server (for example `https://mcp-events.mcpjam.com/jensen`)
+in a separate window. Set how long Jensen plays GTA 6 (5 seconds to 10 minutes),
+choose the scene he returns to, and click **Start**. When the time runs out, the
+server emits `jensen.returned`; **Send now** emits immediately and **Cancel** stops
+the run without emitting. The page reuses the session created on the home page
+in the same browser, or accepts a pasted bearer token. The run is stored per
+session: in the Worker's Durable Object (fired by its alarm) or in memory with a
+timer on the local Node server. The API is `GET|POST|DELETE /jensen/run` and
+`POST /jensen/run/emit`, behind the same bearer token as `/mcp`.
+
+With the show open in MCPJam, the player loops the couch clip until a tool
+result carrying the event's `scene` reaches it, then shows the alert and plays
+the return scene. It never emits events itself. `npm run test:control` checks
+the schedule, send-now and cancel paths against a running server.
+
 The hosted Worker includes the show and its four clips. Create a session on
 the [demo home page](https://mcp-events.mcpjam.com) and connect to the HTTPS
 endpoint using the supplied bearer header. For local development, follow
@@ -32,7 +49,7 @@ the setup below and run `npm run start:show`. The prepared clips are in
 
 1. Open the hosted demo and click **Create session**.
 2. Add an **HTTP** server in MCPJam with the URL shown on the page.
-3. Add a custom header named **Authorization** and paste the entire value shown, including `Bearer`. No OAuth login is needed.
+3. Choose **Bearer Token** and paste only the token (without the `Bearer ` prefix). Alternatively, add a custom **Authorization** header with the full `Bearer <token>` value. Do not configure both. No OAuth login is needed.
 4. In Events, subscribe to **`timer.tick`**. A heartbeat arrives about every 10 seconds.
 5. For manual delivery, subscribe to **`demo.ping`**, then call **`emit_ping`** from Tools:
 
@@ -188,3 +205,16 @@ GitHub Actions builds the pinned SDK, typechecks both runtimes, runs unit checks
 ## License
 
 Demo code: MIT. The official SDK submodule retains its Apache-2.0 license.
+
+### Player media and loading
+
+The player preloads four small MP4s directly from `/media/` using ordinary browser
+media requests. Clips are public demo assets; MCP calls and subscriptions still
+require the session bearer token. The app resource declares the media origin in
+its CSP. Tool results carry URLs, never video bytes. Playback starts independently
+of `cue_scene`, so a slow event receiver cannot hold the picture on Loading.
+
+The cold open cues stage at 6.25 seconds. Enable **Continue to the locker room**
+to cue that scene when stage ends, or select any scene manually. Emission errors
+are visible and retryable; playback continues. Reload/open a fresh show after a
+server update to use the latest player.

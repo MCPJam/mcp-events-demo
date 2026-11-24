@@ -1,55 +1,124 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jensen is back</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap">
 <style>
-:root{color-scheme:dark;font:16px system-ui}body{margin:0;background:#151618;color:#fafafa;padding:14px}video{display:block;width:100%;max-height:54vh;aspect-ratio:16/9;background:#000}nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}button{font:inherit;border:1px solid #606366;border-radius:8px;background:#26282b;color:inherit;padding:8px 12px}button:first-child{background:#d1edaa;color:#172100}p{min-height:1.4em}
+:root{color-scheme:dark;--lav:#8e7cc3;--pink:#e98bb5;--peach:#f7b98f;--plum:#2b1f45;--white:#fffaf6;
+ --sans:Montserrat,"Avenir Next","Helvetica Neue",sans-serif;
+ font:400 14px/1.5 var(--sans);color:var(--white);background:#1c1430}
+*{box-sizing:border-box}body{margin:0;background:#1c1430}button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:1px solid var(--white);outline-offset:3px}
+main{max-width:1000px;margin:auto;padding:10px}
+.screen{position:relative;overflow:hidden;aspect-ratio:16/9;border-radius:6px;background:#000}
+video{display:block;width:100%;height:100%;object-fit:cover}video[hidden]{display:none}
+.shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#8e7cc355 0%,transparent 35%,transparent 60%,#2b1f45cc 100%);mix-blend-mode:normal;transition:background 1s}
+.caps{font:600 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 3px #000c}
+.state{position:absolute;left:22px;top:20px}
+.doing{color:var(--white)}
+.clock{position:absolute;right:22px;top:16px;text-align:right}
+.clock-label{display:block;margin-bottom:6px;color:#fffaf6d9}
+.elapsed{font:400 30px/1 var(--sans);color:var(--white);text-shadow:0 1px 6px #000a}
+.sound{position:absolute;right:20px;bottom:18px;border:0;background:none;padding:4px;color:var(--white)}
+.sound:hover{color:var(--white)}
+/* the moment */
+.alert{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;opacity:0;transition:opacity .8s;background:radial-gradient(60% 50% at 50% 55%,#2b1f45aa,transparent 75%)}
+.alert.on{opacity:1}
+.big{font:600 clamp(36px,7.5vw,72px)/1.05 var(--sans);letter-spacing:-.01em;color:var(--white);margin:0 0 8px;text-shadow:0 2px 10px #0009,0 0 30px #e98bb5aa}
+.alert.on .big{animation:glow 1.6s ease-out both}
+@keyframes glow{0%{opacity:0;filter:blur(6px)}40%{opacity:.6}55%{opacity:.25}70%,100%{opacity:1;filter:none}}
+.msg{margin:0;font-size:16px;font-weight:500;color:var(--white);text-shadow:0 1px 4px #000c}
+.meta{margin-top:14px;color:#fffaf6d9}.meta b{font-weight:500;color:var(--peach)}
+/* afterwards, a quiet caption */
+.alert.docked{inset:auto auto 18px 22px;place-content:end start;text-align:left;background:none}
+.alert.docked .big{font-size:24px;margin:0 0 2px}
+.alert.docked .meta{display:none}
+.alert.docked .msg{font-size:13px}
+.status{margin:8px 2px 0;font:400 13px/1.4 var(--sans);color:#cfc2ea}.status[data-error=true]{color:#ffb1c8}
+@media(max-width:520px){.state{left:14px;top:14px}.clock{right:14px;top:12px}.elapsed{font-size:22px}.alert.docked{left:14px;bottom:12px}.alert.docked .big{font-size:20px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
-<video controls playsinline aria-label="Jensen comeback scene"></video>
-<nav><button data-clip="cold-open">Play cold open</button><button data-clip="stage">Stage</button><button data-clip="locker-room">Locker room</button><button data-clip="wolf">Wolf speech</button></nav>
-<label><input type="checkbox" id="auto"> Play the locker room after the stage clip</label>
-<p role="status">Connecting to MCPJam…</p>
+</head>
+<body>
+<main>
+<div class="screen">
+ <video data-scene="cold-open" muted loop playsinline preload="auto" aria-label="Jensen on the couch, gaming"></video>
+ <video data-scene="stage" muted playsinline preload="auto" hidden aria-label="Jensen walks back on stage"></video>
+ <video data-scene="locker-room" muted playsinline preload="auto" hidden aria-label="Jensen in the locker room"></video>
+ <video data-scene="wolf" muted playsinline preload="auto" hidden aria-label="Jensen's comeback speech"></video>
+ <div class="shade"></div>
+ <div class="state caps"><span class="doing">Off the clock</span></div>
+ <div class="clock"><span class="clock-label caps">Playing</span><span class="elapsed">0:00</span></div>
+ <button class="sound caps" type="button">Sound off</button>
+ <section class="alert" role="alert" aria-live="assertive">
+  <div class="big">Jensen's back</div>
+  <p class="msg">He put the controller down.</p>
+  <div class="meta caps"><b class="ev-name">jensen.returned</b> · <span class="ev-id">—</span></div>
+ </section>
+</div>
+<p class="status" role="status" aria-live="polite">Connecting…</p>
+</main>
 <script type="module">
-const video=document.querySelector("video"), status=document.querySelector("[role=status]");
-const pending=new Map();let sequence=0, generation=0, current="",ready=false;
-function rpc(method,params){
-  const id=++sequence;
-  return new Promise((resolve,reject)=>{
-    const timeout=setTimeout(()=>{pending.delete(id);reject(Error("MCPJam timed out."))},30000);
-    pending.set(id,{resolve,reject,timeout});parent.postMessage({jsonrpc:"2.0",id,method,params},"*");
-  });
+// The server decides when Jensen returns. This app only renders: it never emits events.
+const $=selector=>document.querySelector(selector);
+const status=$('[role=status]'),alertBox=$('.alert'),screen=$('.screen');
+const videos=new Map([...document.querySelectorAll('video')].map(video=>[video.dataset.scene,video]));
+const scenes={stage:'On stage','locker-room':'Locker room',wolf:'The speech'};
+const pending=new Map();let sequence=0,current='cold-open',since=Date.now(),seen=new Set(),sound=false,frozen=false,dockTimer;
+function announce(message,error=false){status.textContent=message;status.dataset.error=String(error)}
+function rpc(method,params){return new Promise((resolve,reject)=>{const id=++sequence;const timeout=setTimeout(()=>{pending.delete(id);reject(Error('The host did not respond.'))},15000);pending.set(id,{resolve,reject,timeout});parent.postMessage({jsonrpc:'2.0',id,method,params},'*')})}
+function text(selector,value){const node=$(selector);if(node)node.textContent=value}
+function setMedia(media){
+ if(!media)return;
+ for(const [scene,video] of videos){const url=media[scene];if(typeof url!=='string')continue;const parsed=new URL(url);if(!['https:','http:'].includes(parsed.protocol))continue;if(video.src!==parsed.href){video.src=parsed.href;video.load()}}
+ if(current==='cold-open')show('cold-open');
 }
-const names={"cold-open":"Cold open",stage:"Jensen is back","locker-room":"Locker room",wolf:"Wolf speech"};
-async function tool(name,args){
-  const r=await rpc("tools/call",{name,arguments:args});
-  if(r.isError)throw Error(r.content?.[0]?.text || "Tool call failed.");
-  return r;
+function show(scene){
+ current=scene;
+ for(const [name,video] of videos){if(name!==scene)video.pause();video.hidden=name!==scene;video.muted=!sound}
+ const video=videos.get(scene);
+ if(scene!=='cold-open')video.currentTime=0;
+ video.play?.().catch(()=>announce('Press play to start the video.'));
 }
-async function play(clip,emit){
-  const turn=++generation;current="";video.pause();status.textContent="Loading "+names[clip]+"…";
-  try{
-    if(emit)await tool("cue_scene",{scene:clip});
-    const result=await tool("load_show_clip",{clip});
-    if(turn!==generation)return;
-    video.src="data:video/mp4;base64,"+result._meta.video;
-    current=clip;status.textContent=names[clip];
-    try{await video.play()}catch{status.textContent=names[clip]+" · Press play on the video."}
-  }catch(e){if(turn===generation)status.textContent=e.message}
+function tick(){const s=Math.floor((Date.now()-since)/1000);text('.elapsed',Math.floor(s/60)+':'+String(s%60).padStart(2,'0'))}
+function returned(data){
+ const scene=Object.hasOwn(scenes,data?.scene)?data.scene:'stage';
+ const id=data?.eventId?String(data.eventId):'';
+ if(id&&seen.has(id))return; if(id)seen.add(id);
+ screen?.classList?.add('back');$('.stars')?.classList?.add('hot');
+ text('.doing',scenes[scene]);text('.clock-label','Played');
+ text('.msg',data?.message||'Jensen is back.');text('.ev-id',id?id.slice(0,8):'—');text('.ev-scene',scene);
+ text('.alert time',new Date().toLocaleTimeString([], {hour12:false}));
+ if(alertBox?.classList){alertBox.classList.remove('docked','on');void alertBox.offsetWidth;alertBox.classList.add('on');clearTimeout(dockTimer);dockTimer=setTimeout(()=>alertBox.classList.add('docked'),4000)}
+ frozen=true;
+ show(scene);
+ announce('jensen.returned received');
 }
-addEventListener("message",({source,data})=>{
-  if(source!==parent||data?.jsonrpc!=="2.0")return;
-  if(pending.has(data.id)){const p=pending.get(data.id);pending.delete(data.id);clearTimeout(p.timeout);
-    if(data.error)p.reject(Error(data.error.message));else p.resolve(data.result);return;}
-  if(data.method==="ui/notifications/tool-result"){
-    const scene=data.params?.structuredContent?.scene;
-    if(Object.hasOwn(names,scene))void play(scene,false);
-  }
+// The gaming clock freezes at the moment the event lands.
+setInterval(()=>{if(!frozen)tick()},1000);
+$('.sound')?.addEventListener?.('click',event=>{sound=!sound;for(const video of videos.values())video.muted=!sound;event.currentTarget.textContent=sound?'Sound on':'Sound off';if(sound)videos.get(current).play?.().catch(()=>{})});
+for(const [scene,video] of videos){
+ video.addEventListener('error',()=>{if(current===scene)announce('This clip could not load.',true)});
+ video.addEventListener('ended',()=>{if(scene===current&&scene==='stage')show('locker-room')});
+}
+addEventListener('message',({source,data})=>{
+ if(source!==parent||data?.jsonrpc!=='2.0')return;
+ if(pending.has(data.id)){const call=pending.get(data.id);pending.delete(data.id);clearTimeout(call.timeout);if(data.error)call.reject(Error(data.error.message));else call.resolve(data.result);return}
+ if(data.method==='ui/notifications/tool-result'){
+  setMedia(data.params?._meta?.media);
+  const content=data.params?.structuredContent;
+  if(content?.scene&&Object.hasOwn(scenes,content.scene))returned(content);
+ }
 });
-document.querySelector("nav").onclick=e=>{const clip=e.target.dataset.clip;if(ready&&clip)void play(clip,clip!=="cold-open")};
-video.ontimeupdate=()=>{if(current==="cold-open"&&video.currentTime>=6.25)void play("stage",true)};
-video.onended=()=>{if(current==="stage"&&document.querySelector("#auto").checked)void play("locker-room",true)};
 try{
- await rpc("ui/initialize",{protocolVersion:"2026-01-26",appInfo:{name:"Jensen comeback show",version:"1.0.0"},appCapabilities:{}});
- parent.postMessage({jsonrpc:"2.0",method:"ui/notifications/initialized",params:{}},"*");
- ready=true;status.textContent="Ready";
-}catch(e){status.textContent=e.message}
-</script></html>
+ await rpc('ui/initialize',{protocolVersion:'2026-01-26',appInfo:{name:'Jensen comeback show',version:'3.0.0'},appCapabilities:{}});
+ parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');
+ announce('Waiting for jensen.returned');
+ const resize=new ResizeObserver(()=>parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/size-changed',params:{height:document.querySelector('main').getBoundingClientRect().height}},'*'));resize.observe(document.querySelector('main'));
+ if(!videos.get('cold-open').getAttribute?.('src')){const result=await rpc('tools/call',{name:'load_show_clip',arguments:{clip:'cold-open'}});setMedia(result?._meta?.media)}
+}catch(error){announce(error.message,true)}
+</script>
+</body>
+</html>
