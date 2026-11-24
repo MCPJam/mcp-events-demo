@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
+import { serveMedia } from "./media.js";
 import {
   OAuthError,
   OAuthErrorCode,
@@ -31,7 +32,7 @@ const demo = createDemo({
   defaultNextPollMs: 1000,
 }, jensen && (events => jensen(events, {
   html: () => readFile(new URL("./show.html", import.meta.url), "utf8"),
-  video: async name => (await readFile(new URL("./cloudflare/assets/media/" + name + ".mp4", import.meta.url))).toString("base64"),
+  mediaOrigin: () => `http://127.0.0.1:${port}`,
 })));
 
 const gate = requireBearerAuth({
@@ -65,6 +66,10 @@ const mcp = toNodeHandler({
 });
 const http = createServer((req, res) => {
   const path = new URL(req.url ?? "/", "http://localhost").pathname;
+  if (jensen && /^\/media\/(cold-open|stage|locker-room|wolf)\.mp4$/.test(path) && ["GET", "HEAD"].includes(req.method ?? "")) {
+    void serveMedia(req, res, new URL("./cloudflare/assets" + path, import.meta.url));
+    return;
+  }
   if (path === "/health") {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(

@@ -1,4 +1,3 @@
-import { Buffer } from "node:buffer";
 import { createJensen } from "../../jensen";
 import showHtml from "../../show.html";
 import { DurableObject } from "cloudflare:workers";
@@ -11,6 +10,7 @@ import { createDemo } from "../../demo";
 import { createSessionToken, verifySessionToken } from "./session-token";
 import { cloudflareWebhookSender } from "./webhook-sender";
 import { landing } from "./landing";
+import { mediaResponse } from "./media";
 
 interface Env {
   ASSETS: Fetcher;
@@ -54,6 +54,7 @@ class SubscriptionStore implements WebhookSubscriptionStore {
 export class EventsDemoSession extends DurableObject<Env> {
   private demo: ReturnType<typeof createDemo>;
   private expiresAt = 0;
+  private mediaOrigin = "";
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.demo = createDemo({
@@ -67,17 +68,14 @@ export class EventsDemoSession extends DurableObject<Env> {
       checkIntervalMs: 1000,
     }, events => createJensen(events, {
       html: async () => showHtml,
-      video: async name => {
-        const response = await env.ASSETS.fetch("https://assets.local/media/" + name + ".mp4");
-        if (!response.ok) throw new Error("Demo clip unavailable: " + name);
-        return Buffer.from(await response.arrayBuffer()).toString("base64");
-      },
+      mediaOrigin: () => this.mediaOrigin,
     }));
     ctx.blockConcurrencyWhile(async () => {
       this.expiresAt = (await ctx.storage.get<number>("expiresAt")) ?? 0;
     });
   }
   async fetch(request: Request) {
+    this.mediaOrigin = new URL(request.url).origin;
     if (!this.expiresAt) {
       this.expiresAt = Number(request.headers.get("x-demo-expires-at"));
       if (!Number.isFinite(this.expiresAt) || this.expiresAt <= Date.now())
@@ -136,6 +134,9 @@ export default {
           },
         }),
       );
+    if (/^\/media\/(cold-open|stage|locker-room|wolf)\.mp4$/.test(pathname) && ["GET", "HEAD"].includes(request.method)) {
+      return mediaResponse(request, env.ASSETS);
+    }
     if (pathname === "/" && request.method === "GET") return landing();
     if (pathname === "/health")
       return cors(

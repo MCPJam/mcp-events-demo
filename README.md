@@ -10,7 +10,7 @@ Hosted MCP endpoint: **`https://mcp-events.mcpjam.com/mcp`**. Create a session o
 
 The Node server can host a four-clip MCP App and publish the beta event `jensen.returned`.
 In MCPJam Playground, connect the server, select **open_show**, and click **Run**.
-Click **Play cold open**. At the mid-bite pause the app calls **cue_scene** with
+Click **Start the show**. At the mid-bite pause the app calls **cue_scene** with
 `stage` and plays the entrance when the publisher acknowledges it. Check
 **Play the locker room after the stage clip** for the timed follow-up, or click
 **Locker room** or **Wolf speech** to cue a scene manually. Each cue emits
@@ -32,7 +32,7 @@ the setup below and run `npm run start:show`. The prepared clips are in
 
 1. Open the hosted demo and click **Create session**.
 2. Add an **HTTP** server in MCPJam with the URL shown on the page.
-3. Add a custom header named **Authorization** and paste the entire value shown, including `Bearer`. No OAuth login is needed.
+3. Choose **Bearer Token** and paste only the token (without the `Bearer ` prefix). Alternatively, add a custom **Authorization** header with the full `Bearer <token>` value. Do not configure both. No OAuth login is needed.
 4. In Events, subscribe to **`timer.tick`**. A heartbeat arrives about every 10 seconds.
 5. For manual delivery, subscribe to **`demo.ping`**, then call **`emit_ping`** from Tools:
 
@@ -188,3 +188,16 @@ GitHub Actions builds the pinned SDK, typechecks both runtimes, runs unit checks
 ## License
 
 Demo code: MIT. The official SDK submodule retains its Apache-2.0 license.
+
+### Player media and loading
+
+The player preloads four small MP4s directly from `/media/` using ordinary browser
+media requests. Clips are public demo assets; MCP calls and subscriptions still
+require the session bearer token. The app resource declares the media origin in
+its CSP. Tool results carry URLs, never video bytes. Playback starts independently
+of `cue_scene`, so a slow event receiver cannot hold the picture on Loading.
+
+The cold open cues stage at 6.25 seconds. Enable **Continue to the locker room**
+to cue that scene when stage ends, or select any scene manually. Emission errors
+are visible and retryable; playback continues. Reload/open a fresh show after a
+server update to use the latest player.
