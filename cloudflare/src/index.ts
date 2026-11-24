@@ -1,3 +1,6 @@
+import { Buffer } from "node:buffer";
+import { createJensen } from "../../jensen";
+import showHtml from "../../show.html";
 import { DurableObject } from "cloudflare:workers";
 import {
   EventsError,
@@ -10,6 +13,7 @@ import { cloudflareWebhookSender } from "./webhook-sender";
 import { landing } from "./landing";
 
 interface Env {
+  ASSETS: Fetcher;
   SESSIONS: DurableObjectNamespace<EventsDemoSession>;
   SESSION_LIMIT: RateLimit;
   REQUEST_LIMIT: RateLimit;
@@ -61,7 +65,14 @@ export class EventsDemoSession extends DurableObject<Env> {
       emitBuffer: { maxEvents: 256, maxAgeMs: 5 * 60_000 },
       defaultNextPollMs: 1000,
       checkIntervalMs: 1000,
-    });
+    }, events => createJensen(events, {
+      html: async () => showHtml,
+      video: async name => {
+        const response = await env.ASSETS.fetch("https://assets.local/media/" + name + ".mp4");
+        if (!response.ok) throw new Error("Demo clip unavailable: " + name);
+        return Buffer.from(await response.arrayBuffer()).toString("base64");
+      },
+    }));
     ctx.blockConcurrencyWhile(async () => {
       this.expiresAt = (await ctx.storage.get<number>("expiresAt")) ?? 0;
     });

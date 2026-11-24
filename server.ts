@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import {
   OAuthError,
@@ -9,6 +10,7 @@ import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createDemo } from "./demo.js";
 import { getToken, port, receiverPort } from "./config.js";
 
+const jensen = process.env.JENSEN_SHOW === "1" ? (await import("./jensen.js")).createJensen : undefined;
 const token = getToken();
 const log = (action: string, details: object = {}) =>
   console.log(
@@ -27,7 +29,10 @@ const demo = createDemo({
   trustedOrigins: [`http://127.0.0.1:${receiverPort}`],
   checkIntervalMs: 250,
   defaultNextPollMs: 1000,
-});
+}, jensen && (events => jensen(events, {
+  html: () => readFile(new URL("./show.html", import.meta.url), "utf8"),
+  video: async name => (await readFile(new URL("./cloudflare/assets/media/" + name + ".mp4", import.meta.url))).toString("base64"),
+})));
 
 const gate = requireBearerAuth({
   verifier: {
@@ -66,7 +71,7 @@ const http = createServer((req, res) => {
       JSON.stringify({
         ok: true,
         sdk: "official-events-PR-3209",
-        events: ["demo.ping", "timer.tick"],
+        events: ["demo.ping", "timer.tick", ...(jensen ? ["jensen.returned"] : [])],
       }),
     );
     return;
