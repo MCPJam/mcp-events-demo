@@ -14,6 +14,8 @@
     "test:unit": "node --import tsx --test tests/*.test.ts",
     "test:isolation": "node --import tsx isolation-test.ts",
     "typecheck": "tsc --noEmit",
-    "tunnel": "cloudflared tunnel --url http://127.0.0.1:18889"
+    "tunnel": "cloudflared tunnel --url http://127.0.0.1:18889",
+    "start:show": "JENSEN_SHOW=1 node --import tsx server.ts",
+    "test:show": "node --import tsx jensen-smoke.ts"
   }
 }

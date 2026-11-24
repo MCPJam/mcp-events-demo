@@ -56,12 +56,13 @@ try {
   assert.deepEqual(
     types.map((type) => [type.name, type.delivery]),
     [
+      ...(process.env.JENSEN_SHOW === "1" ? [["jensen.returned", ["poll", "push", "webhook"]]] : []),
       ["demo.ping", ["poll", "push", "webhook"]],
       ["timer.tick", ["poll", "push", "webhook"]],
     ],
   );
   console.log(
-    "PASS: official SDK discovery lists both events and all three delivery modes",
+    "PASS: official SDK discovery lists the configured events and all three delivery modes",
   );
   const topic = `smoke-${randomUUID()}`;
   for (const delivery of ["poll", "push", "webhook"] as const) {

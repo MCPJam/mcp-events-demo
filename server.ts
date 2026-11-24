@@ -9,6 +9,7 @@ import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createDemo } from "./demo.js";
 import { getToken, port, receiverPort } from "./config.js";
 
+const jensen = process.env.JENSEN_SHOW === "1" ? (await import("./jensen.js")).createJensen : undefined;
 const token = getToken();
 const log = (action: string, details: object = {}) =>
   console.log(
@@ -27,7 +28,7 @@ const demo = createDemo({
   trustedOrigins: [`http://127.0.0.1:${receiverPort}`],
   checkIntervalMs: 250,
   defaultNextPollMs: 1000,
-});
+}, jensen);
 
 const gate = requireBearerAuth({
   verifier: {
@@ -66,7 +67,7 @@ const http = createServer((req, res) => {
       JSON.stringify({
         ok: true,
         sdk: "official-events-PR-3209",
-        events: ["demo.ping", "timer.tick"],
+        events: ["demo.ping", "timer.tick", ...(jensen ? ["jensen.returned"] : [])],
       }),
     );
     return;

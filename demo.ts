@@ -9,10 +9,11 @@ import {
 import * as z from "zod/v4";
 
 // Shared by local Node and Cloudflare. All Events protocol handling is official SDK code.
-export function createDemo(options: EventsOptions) {
+export function createDemo(options: EventsOptions, configure?: (events: EventsExtension) => (server: McpServer) => void) {
   const log = (action: string, details: object = {}) =>
     console.log(JSON.stringify({ action, ...details }));
   const events = new EventsExtension(options);
+  const registerExtraTools = configure?.(events);
   const lifecycle = {
     onSubscribe(ctx: EventContext) {
       log("subscribed", {
@@ -95,6 +96,7 @@ export function createDemo(options: EventsOptions) {
         };
       },
     );
+    registerExtraTools?.(server);
     return server;
   }
 

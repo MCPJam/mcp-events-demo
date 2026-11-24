@@ -6,6 +6,30 @@ A real MCP Events publisher, built with the **official TypeScript SDK**, that yo
 
 Hosted MCP endpoint: **`https://mcp-events.mcpjam.com/mcp`**. Create a session on the home page to get its Authorization header.
 
+## Jensen comeback show
+
+The Node server can host a four-clip MCP App and publish the beta event `jensen.returned`.
+In MCPJam Playground, connect the server, select **open_show**, and click **Run**.
+Click **Play cold open**. At the mid-bite pause the app calls **cue_scene** with
+`stage` and plays the entrance when the publisher acknowledges it. Check
+**Play the locker room after the stage clip** for the timed follow-up, or click
+**Locker room** or **Wolf speech** to cue a scene manually. Each cue emits
+one event with a new ID, a scene and a message.
+
+To observe independent deliveries, subscribe to **jensen.returned** in Events
+using **Poll**. Leave the scene argument skipped for every scene, or set it to
+`stage`, `locker-room` or `wolf`. In Triggers, select that hosted subscription
+to run instructions on delivery. The stage player and the hosted trigger run
+are independently observable.
+
+For a new installation, run the setup below, put four H.264 MP4s named
+`cold-open.mp4`, `stage.mp4`, `locker-room.mp4`, and `wolf.mp4` in
+`.runtime/media/`, then start with `npm run start:show`. The demo's current
+workspace already contains the prepared clips. Use an opening clip with a
+mid-bite cue at 6.25 seconds. The app transfers clips over the authenticated
+MCP connection; use small encodes suitable for tool responses. The MIT source
+license covers the server code. Supply your own media for redistribution.
+
 ## Try it in MCPJam
 
 1. Open the hosted demo and click **Create session**.
