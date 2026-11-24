@@ -17,6 +17,7 @@ export function landing() {
 <label for="url">1 · Server URL — add an HTTP server in MCPJam</label><div class="field"><input id="url" readonly><button class="copy" data-copy="url">Copy URL</button></div>
 <label for="token">2 · Custom header name: Authorization</label><div class="field"><textarea id="token" readonly spellcheck="false" aria-label="Authorization header value"></textarea><button class="copy" data-copy="token">Copy value</button></div>
 <p class="muted">Paste the value exactly, including “Bearer”. Choose a custom header, not OAuth.</p><p id="expires"></p>
+<p class="muted">Jensen show: open the <a href="/jensen">control room</a> to set his GTA 6 time.</p>
 </div></section>
 <ol><li><strong>Subscribe to a heartbeat</strong><p>Open Events, choose <code>timer.tick</code>, and subscribe. A new event arrives about every 10 seconds.</p></li><li><strong>Send your own event</strong><p>Subscribe to <code>demo.ping</code>. Then open Tools and call <code>emit_ping</code> with a message. You can ask an agent to call it, too.</p></li><li><strong>Try another delivery mode</strong><p>Compare webhook, polling, and streaming. Enable the mode in your MCPJam client’s Events settings.</p></li></ol>
 <details><summary>What happens to my session?</summary><p>Each session is isolated from other visitors. Anyone holding its token can access it, so keep the token to yourself and use test messages only. After 30 minutes, subscriptions stop and stored session data is removed. Create another session to keep testing.</p></details>

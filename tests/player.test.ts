@@ -9,44 +9,42 @@ function player() {
   const listeners = new Map<string, (event: unknown) => void>();
   const scenes = ['cold-open', 'stage', 'locker-room', 'wolf'];
   const videos = scenes.map(scene => ({
-    dataset: {scene}, src: '', hidden: true, currentTime: 0, plays: 0,
+    dataset: {scene}, src: '', hidden: scene !== 'cold-open', muted: true, currentTime: 0, plays: 0,
     events: new Map<string, () => void>(),
     pause() {}, load() {}, async play() { this.plays++; },
-    hasAttribute() { return !!this.src; },
+    getAttribute() { return this.src; },
     addEventListener(name: string, callback: () => void) { this.events.set(name, callback); },
   }));
-  const controls = new Map<string, Record<string, unknown>>();
-  for (const selector of ['[role=status]', '#start', '.cover', '.retry', '#auto', 'nav']) controls.set(selector, {dataset:{}, hidden:true, checked:false});
-  const buttons = scenes.map(clip => ({dataset:{clip}, disabled:true, setAttribute() {}}));
+  const nodes = new Map<string, Record<string, unknown>>();
+  const node = (selector: string) => { if (!nodes.has(selector)) nodes.set(selector, {dataset: {}, textContent: ''}); return nodes.get(selector); };
   const parent = {postMessage(message: typeof messages[number]) { messages.push(message); }};
-  const timers = new Map<number, () => void>(); let id = 0;
   runInNewContext("(async () => {" + html.match(/<script type="module">([\s\S]*?)<\/script>/)![1] + "})()", {
-    document: {querySelector: (selector: string) => controls.get(selector), querySelectorAll: (selector: string) => selector === 'video' ? videos : buttons},
-    ResizeObserver: class { observe() {} }, parent, URL, console, setTimeout: (callback: () => void) => {timers.set(++id, callback); return id;}, clearTimeout: (id: number) => timers.delete(id),
+    document: {querySelector: node, querySelectorAll: () => videos},
+    ResizeObserver: class { observe() {} }, parent, URL, console, Date,
+    setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0,
     addEventListener: (name: string, callback: (event: unknown) => void) => listeners.set(name, callback),
   });
-  const receive = (data: object) => listeners.get('message')!({source:parent, data:{jsonrpc:'2.0', ...data}});
+  const receive = (data: object) => listeners.get('message')!({source: parent, data: {jsonrpc: '2.0', ...data}});
   const flush = () => new Promise(resolve => setImmediate(resolve));
-  return {messages, controls, videos, receive, flush};
+  return {messages, nodes, videos, receive, flush};
 }
-test('preloaded clips transition immediately even when cue delivery is pending, without media RPCs or duplicate cues', async () => {
+const media = Object.fromEntries(['cold-open', 'stage', 'locker-room', 'wolf'].map(scene => [scene, `https://demo.example/media/${scene}.mp4`]));
+
+test('the couch loops until jensen.returned arrives, then the alert and return scene play once', async () => {
   const p = player();
-  const media = Object.fromEntries(p.videos.map(video => [video.dataset.scene, `https://demo.example/media/${video.dataset.scene}.mp4`]));
-  p.receive({method:'ui/notifications/tool-result', params:{_meta:{media}}});
-  p.receive({id:1, result:{}}); await p.flush();
-  (p.controls.get('#start')!.onclick as () => void)();
+  p.receive({method: 'ui/notifications/tool-result', params: {_meta: {media}}});
+  p.receive({id: 1, result: {}}); await p.flush();
+  const [cold, stage] = p.videos;
+  assert.equal(cold.hidden, false); assert.ok(cold.plays >= 1); assert.equal(stage.plays, 0);
+
+  const event = {eventId: 'abcdef12-0000', scene: 'stage', message: 'He put the controller down.'};
+  p.receive({method: 'ui/notifications/tool-result', params: {structuredContent: event, _meta: {media}}});
+  p.receive({method: 'ui/notifications/tool-result', params: {structuredContent: event, _meta: {media}}});
   await p.flush();
-  const cold = p.videos[0], stage = p.videos[1];
-  assert.equal(cold.plays, 1);
-  cold.currentTime = 6.3; cold.events.get('timeupdate')!();
-  cold.events.get('timeupdate')!(); await p.flush();
-  assert.equal(stage.hidden, false); assert.equal(stage.plays, 1);
-  assert.equal(cold.hidden, true);
-  assert.equal(p.messages.filter(message => message.params?.name === 'cue_scene').length, 1);
+  assert.equal(stage.hidden, false); assert.equal(cold.hidden, true); assert.equal(stage.plays, 1);
+  assert.equal(p.nodes.get('.msg')!.textContent, event.message);
+  assert.equal(p.nodes.get('.ev-id')!.textContent, 'abcdef12');
+  // The app only renders; the server owns timing and emission.
+  assert.equal(p.messages.filter(message => message.params?.name === 'cue_scene').length, 0);
   assert.equal(p.messages.filter(message => message.params?.name === 'load_show_clip').length, 0);
-  const cue = p.messages.find(message => message.params?.name === 'cue_scene')!;
-  p.receive({id:cue.id, error:{message:'delivery unavailable'}}); await p.flush();
-  assert.match(String(p.controls.get('[role=status]')!.textContent), /delivery unavailable/);
-  assert.equal(p.controls.get('.retry')!.hidden, false);
-  assert.equal(stage.plays, 1);
 });

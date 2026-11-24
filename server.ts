@@ -9,10 +9,12 @@ import {
 import { nodeWebhookSender } from "@modelcontextprotocol/server/ext/events/node";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createDemo } from "./demo.js";
+import { ShowRuns, controlHeaders, handleRunRequest, memoryRunStore, timerSchedule } from "./show-runs.js";
 import { getToken, port, receiverPort } from "./config.js";
 
 const jensen = process.env.JENSEN_SHOW === "1" ? (await import("./jensen.js")).createJensen : undefined;
 const token = getToken();
+let runs: ShowRuns | undefined;
 const log = (action: string, details: object = {}) =>
   console.log(
     JSON.stringify({ at: new Date().toISOString(), action, ...details }),
@@ -30,10 +32,15 @@ const demo = createDemo({
   trustedOrigins: [`http://127.0.0.1:${receiverPort}`],
   checkIntervalMs: 250,
   defaultNextPollMs: 1000,
-}, jensen && (events => jensen(events, {
-  html: () => readFile(new URL("./show.html", import.meta.url), "utf8"),
-  mediaOrigin: () => `http://127.0.0.1:${port}`,
-})));
+}, jensen && (events => {
+  const show = jensen(events, {
+    html: () => readFile(new URL("./show.html", import.meta.url), "utf8"),
+    mediaOrigin: () => `http://127.0.0.1:${port}`,
+  });
+  // One principal locally, so one in-memory run with a timer.
+  runs = new ShowRuns(show.emit, memoryRunStore(), timerSchedule(() => runs!));
+  return show.register;
+}));
 
 const gate = requireBearerAuth({
   verifier: {
@@ -64,8 +71,28 @@ const mcp = toNodeHandler({
     return handler.fetch(request, { authInfo });
   },
 });
+// Control page API: same bearer token as /mcp.
+const control = toNodeHandler({
+  async fetch(request) {
+    const authInfo = await gate(request);
+    if (authInfo instanceof Response) return authInfo;
+    return (await handleRunRequest(request, runs!)) ?? new Response("Not found", { status: 404 });
+  },
+});
 const http = createServer((req, res) => {
   const path = new URL(req.url ?? "/", "http://localhost").pathname;
+  if (runs && path === "/jensen" && req.method === "GET") {
+    void readFile(new URL("./control.html", import.meta.url), "utf8").then(html => {
+      res.writeHead(200, controlHeaders);
+      res.end(html);
+    });
+    return;
+  }
+  if (runs && path.startsWith("/jensen/run")) {
+    log("jensen", { method: req.method, path });
+    void control(req, res);
+    return;
+  }
   if (jensen && /^\/media\/(cold-open|stage|locker-room|wolf)\.mp4$/.test(path) && ["GET", "HEAD"].includes(req.method ?? "")) {
     void serveMedia(req, res, new URL("./cloudflare/assets" + path, import.meta.url));
     return;

@@ -31,10 +31,16 @@ export function createJensen(events: EventsExtension, assets: ShowAssets) {
     match: (_ctx, item, args) => !args.scene || item.data.scene === args.scene,
   });
   const media = () => Object.fromEntries(clip.options.map(name => [name, `${assets.mediaOrigin()}/media/${name}.mp4?v=2`]));
-  return (server: McpServer) => {
+  /** Emits jensen.returned outside any MCP request, for server-side timers. */
+  const emit = async (scene: Scene, message: string) => {
+    const eventId = crypto.randomUUID();
+    await event.emit({ eventId, data: { scene, message } });
+    return eventId;
+  };
+  const register = (server: McpServer) => {
     server.registerResource("Jensen comeback show", uri, { mimeType }, async () => ({
       contents: [{ uri, mimeType, text: await assets.html(),
-        _meta: { ui: { csp: { resourceDomains: [assets.mediaOrigin()] } } },
+        _meta: { ui: { csp: { resourceDomains: [assets.mediaOrigin(), "https://fonts.googleapis.com", "https://fonts.gstatic.com"] } } },
       }],
     }));
     server.registerTool("open_show", {
@@ -57,4 +63,5 @@ export function createJensen(events: EventsExtension, assets: ShowAssets) {
       return { content: [], _meta: { url: media()[clip], media: media() } };
     });
   };
+  return { register, emit };
 }

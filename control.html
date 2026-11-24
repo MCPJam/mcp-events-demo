@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jensen control room</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap">
+<style>
+:root{color-scheme:dark;--lav:#8e7cc3;--pink:#e98bb5;--peach:#f7b98f;--plum:#2b1f45;--white:#fffaf6;--soft:#fffaf6e0;--faint:#fffaf6b0;
+ --sans:Montserrat,"Avenir Next","Helvetica Neue",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;
+ font:400 15px/1.55 var(--sans);color:var(--white)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:linear-gradient(180deg,#5d4f9a 0%,#8e7cc3 30%,#c98bc0 55%,#efa3a8 72%,#f7c294 88%,#f9d3a6 100%) fixed}
+.palms{position:fixed;left:0;right:0;bottom:0;height:62vh;z-index:-1;pointer-events:none;opacity:.55}
+button,input{font:inherit;color:inherit}button{cursor:pointer}button:disabled{opacity:.35;cursor:not-allowed}
+:focus-visible{outline:1px solid var(--white);outline-offset:3px}
+main{max-width:920px;margin:auto;padding:34px 22px 48px}
+.caps{font:600 12px/1 var(--sans);letter-spacing:.18em;text-transform:uppercase}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:46px}
+.conn{display:inline-flex;align-items:center;gap:8px;color:var(--soft)}
+.conn i{width:6px;height:6px;border-radius:50%;background:var(--faint)}.conn[data-ok=true] i{background:var(--white);box-shadow:0 0 8px var(--white)}.conn[data-ok=false] i{background:#ffb1c8}
+h1{font:500 clamp(32px,5.4vw,52px)/1.1 var(--sans);letter-spacing:-.01em;margin:0 0 10px;text-shadow:0 0 24px #e98bb588}
+.lead{margin:0 0 34px;color:var(--soft);font-size:16px;font-weight:400}
+.lead code,.hint code{font:12px var(--mono);color:var(--white)}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+.panel{background:#2b1f4559;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid #fffaf62e;border-radius:4px;padding:24px}
+.label{display:block;color:var(--soft);margin-bottom:12px}
+.dur{display:flex;align-items:baseline;gap:14px}
+.dur output{font:300 clamp(56px,9vw,80px)/1 var(--sans);color:var(--white);text-shadow:0 0 22px #e98bb566}
+.dur small{color:var(--soft)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;margin:22px 0 18px;background:#fffaf680;outline:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--white);box-shadow:0 0 10px var(--pink);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--white);cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:18px}
+.chip{border:0;background:none;padding:2px 0;font:600 13px/1 var(--sans);letter-spacing:.06em;color:var(--faint);border-bottom:1px solid transparent}
+.chip:hover{color:var(--white)}.chip[aria-pressed=true]{color:var(--white);border-bottom-color:var(--white)}
+.field{margin-top:30px}.field label{display:block;margin-bottom:12px;color:var(--soft)}
+.seg{display:flex;gap:22px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:2px 0;font-weight:500;font-size:15px;color:var(--faint);border-bottom:1px solid transparent}
+.seg button small{display:none}
+.seg button:hover{color:var(--white)}.seg button[aria-pressed=true]{color:var(--white);border-bottom-color:var(--white)}
+input[type=text],input[type=password]{width:100%;background:none;border:0;border-bottom:1px solid #fffaf650;padding:6px 0;font-size:15px;font-weight:300}
+input:focus{outline:0;border-bottom-color:var(--white)}
+.auth{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:end}
+.auth button{border:1px solid #fffaf680;background:none;border-radius:99px;padding:7px 16px;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase}
+.run{display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;height:100%;justify-content:center}
+.ring{--p:0;position:relative;width:190px;height:190px;border-radius:50%;background:conic-gradient(var(--white) calc(var(--p)*1turn),#fffaf626 0);display:grid;place-items:center;filter:drop-shadow(0 0 10px #e98bb580)}
+.ring:before{content:"";position:absolute;inset:1.5px;border-radius:50%;background:#3a2c5c}
+.ring div{position:relative}
+.ring strong{display:block;font:300 46px/1 var(--sans)}
+.ring span{display:block;margin-top:10px;font:600 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+.run[data-state=returned] .ring strong{font-weight:500;text-shadow:0 0 18px var(--pink)}
+.primary{border:1px solid var(--white);background:var(--white);color:var(--plum);border-radius:99px;padding:13px 40px;font:600 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;transition:box-shadow .2s}
+.primary:not(:disabled):hover{box-shadow:0 0 24px #fffaf6aa}
+.row{display:flex;gap:22px}
+.ghost{border:0;background:none;padding:2px 0;font:600 12px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--soft)}
+.ghost:not(:disabled):hover{color:var(--white)}
+.note{font-size:13px;color:var(--soft);margin:0;min-height:1.5em}.note[data-error=true]{color:#ffd0dc}
+.log{margin-top:14px}
+.log ol{list-style:none;margin:0;padding:0;font:12px/1.5 var(--mono);max-height:220px;overflow:auto}
+.log li{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:8px 0;border-top:1px solid #fffaf61a}
+.log li:first-child{border-top:0}
+.log time{color:var(--faint)}.log .ic{display:none}
+.log .err span{color:#ffd0dc}
+.log pre{margin:3px 0 0;color:var(--faint);white-space:pre-wrap;word-break:break-all;font:11px/1.45 var(--mono)}
+.log .empty{display:block;color:var(--faint);font-family:var(--sans)}
+.hint{font-size:13px;color:var(--soft);margin:18px 2px 0}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.run{padding:10px 0}}
+</style>
+</head>
+<body>
+<svg class="palms" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMax slice" aria-hidden="true" fill="#4b3a7a">
+ <path d="M120 500 C132 390 146 300 172 210 L180 212 C158 302 146 390 140 500Z"/>
+ <path d="M176 210 c-44-34-100-34-144-12 c50-6 94 0 138 18 c-34 11-66 44-82 82 c33-33 66-55 94-66 c0 33-11 66-33 94 c33-28 50-61 50-94 c28 17 50 44 61 77 c0-39-22-72-50-88 c44-6 88 6 121 28 c-28-39-83-55-132-44 c22-28 55-44 94-50 c-44-11-88 6-116 55z"/>
+ <path d="M300 500 C306 430 312 380 328 320 L334 321 C320 381 314 431 314 500Z"/>
+ <path d="M331 320 c28-22 66-23 94-8 c-32-3-61 1-89 13 c22 7 43 29 53 54 c-21-21-43-36-61-43 c1 21 8 43 22 61 c-21-18-32-40-32-61 c-18 11-32 29-40 50 c0-25 14-46 32-57 c-29-3-57 4-79 18 c18-25 53-36 85-29 c-14-18-36-29-61-32 c29-8 57 3 76 34z"/>
+ <path d="M1020 500 C1010 380 994 290 964 200 L972 198 C1004 288 1020 380 1036 500Z"/>
+ <path d="M968 200 c44-35 104-37 148-13 c-50-5-96 2-140 21 c35 11 68 46 84 86 c-34-34-68-57-96-68 c1 34 12 68 35 97 c-34-29-52-63-52-97 c-29 18-51 45-63 79 c0-40 23-74 51-90 c-45-4-90 7-124 29 c29-40 85-57 135-45 c-23-29-57-45-97-51 c45-12 90 4 119 52z"/>
+</svg>
+<main>
+ <div class="top"><span class="caps">Jensen · Control room</span><span class="conn caps" data-ok=""><i></i><span class="conn-label">Not connected</span></span></div>
+ <h1>How long can Jensen play GTA 6?</h1>
+ <p class="lead">When time's up, the server emits <code>jensen.returned</code>.</p>
+ <div class="grid">
+  <section class="panel">
+   <span class="label caps">Playtime</span>
+   <div class="dur"><output id="dur-out">0:30</output><small id="dur-words">30 seconds</small></div>
+   <input type="range" id="dur" min="5" max="600" step="5" value="30" aria-label="Playtime in seconds">
+   <div class="chips" role="group" aria-label="Presets">
+    <button class="chip" data-sec="10">10s</button><button class="chip" data-sec="30" aria-pressed="true">30s</button><button class="chip" data-sec="60">1m</button><button class="chip" data-sec="120">2m</button><button class="chip" data-sec="300">5m</button>
+   </div>
+   <div class="field"><span class="label caps">Returns to</span>
+    <div class="seg" role="group" aria-label="Return scene">
+     <button data-scene="stage" aria-pressed="true">The stage<small>stage</small></button>
+     <button data-scene="locker-room" aria-pressed="false">Locker room<small>locker-room</small></button>
+     <button data-scene="wolf" aria-pressed="false">The speech<small>wolf</small></button>
+    </div>
+   </div>
+   <div class="field"><label class="caps" for="message">Message</label><input type="text" id="message" value="He put the controller down." maxlength="120"></div>
+   <div class="field" id="auth-field"><label class="caps" for="token">Session token</label>
+    <div class="auth"><input type="password" id="token" placeholder="Bearer token from the demo home page" autocomplete="off" spellcheck="false"><button id="connect" type="button">Connect</button></div>
+   </div>
+  </section>
+  <section class="panel">
+   <div class="run" data-state="idle">
+    <div class="ring"><div><strong id="left">0:30</strong><span id="phase">Ready</span></div></div>
+    <button class="primary" id="start" disabled>Start</button>
+    <div class="row"><button class="ghost" id="now" disabled>Send now</button><button class="ghost danger" id="cancel" disabled>Cancel</button></div>
+    <p class="note" role="status" aria-live="polite"></p>
+    <span class="run-id" hidden></span>
+   </div>
+  </section>
+ </div>
+ <section class="panel log"><span class="label caps">Sent</span><ol id="log"><li class="empty">Nothing sent yet.</li></ol></section>
+ <p class="hint">In MCPJam, subscribe to <code>jensen.returned</code> and run <code>open_show</code>.</p>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const sim=new URLSearchParams(location.search).has('sim');
+const api={token:'',async call(method,path,body){
+ const response=await fetch(path,{method,headers:{'content-type':'application/json',authorization:'Bearer '+this.token},body:body?JSON.stringify(body):undefined});
+ if(!response.ok){const text=await response.text();let message=text;try{message=JSON.parse(text).error||text}catch{}throw Error(response.status===401?'Session expired or token invalid. Create a new session on the home page.':message||response.statusText)}return response.json()}};
+// Simulator: stands in for the server so the UI can be tried without a deployment.
+const channel=sim&&'BroadcastChannel' in window?new BroadcastChannel('jensen-sim'):null;
+const simServer={run:null,timer:0,
+ start(body){clearTimeout(this.timer);const now=Date.now();this.run={id:crypto.randomUUID(),startedAt:now,returnsAt:now+body.playSeconds*1000,scene:body.scene,message:body.message,state:'running'};this.timer=setTimeout(()=>this.emit(),body.playSeconds*1000);return this.run},
+ emit(){if(!this.run||this.run.state!=='running')return this.run;clearTimeout(this.timer);const event={eventId:crypto.randomUUID(),scene:this.run.scene,message:this.run.message};this.run={...this.run,state:'returned',returnedAt:Date.now(),event};channel?.postMessage({type:'jensen.returned',data:event});return this.run},
+ cancel(){clearTimeout(this.timer);if(this.run)this.run={...this.run,state:'cancelled'};return this.run}};
+const client={
+ start:body=>sim?Promise.resolve(simServer.start(body)):api.call('POST','/jensen/run',body),
+ now:()=>sim?Promise.resolve(simServer.emit()):api.call('POST','/jensen/run/emit'),
+ cancel:()=>sim?Promise.resolve(simServer.cancel()):api.call('DELETE','/jensen/run'),
+ state:()=>sim?Promise.resolve(simServer.run):api.call('GET','/jensen/run')};
+
+let seconds=30,scene='stage',run=null,connected=false,logged=new Set();
+const fmt=s=>Math.floor(s/60)+':'+String(Math.max(0,Math.floor(s%60))).padStart(2,'0');
+const words=s=>s<60?s+' seconds':(s%60?`${Math.floor(s/60)} min ${s%60} s`:`${s/60} minute${s===60?'':'s'}`);
+function note(text,error=false){const n=$('.note');n.textContent=text;n.dataset.error=String(error)}
+function conn(ok,label){const c=$('.conn');c.dataset.ok=String(ok);$('.conn-label').textContent=label}
+function log(kind,text,payload){
+ const ol=$('#log');ol.querySelector('.empty')?.remove();
+ const li=document.createElement('li');li.className=kind;
+ const t=document.createElement('time');t.textContent=new Date().toLocaleTimeString([], {hour12:false});
+ const ic=document.createElement('span');ic.className='ic';ic.textContent={emit:'⚡',sched:'⏱',cancel:'✕',err:'!'}[kind];
+ const body=document.createElement('span');body.textContent=text;
+ if(payload){const pre=document.createElement('pre');pre.textContent=JSON.stringify(payload,null,1).replace(/\n\s*/g,' ');body.append(pre)}
+ li.append(t,ic,body);ol.prepend(li);
+}
+function setSeconds(value){seconds=+value;$('#dur').value=seconds;$('#dur-out').textContent=fmt(seconds);$('#dur-words').textContent=words(seconds);document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(+c.dataset.sec===seconds)));if(!run||run.state!=='running')$('#left').textContent=fmt(seconds)}
+$('#dur').oninput=e=>setSeconds(e.target.value);
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>setSeconds(c.dataset.sec));
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{scene=b.dataset.scene;document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))});
+
+function render(){
+ const box=$('.run'),state=run?.state||'idle',running=state==='running';
+ box.dataset.state=state;
+ $('#start').disabled=!connected||running;$('#now').disabled=!running;$('#cancel').disabled=!running;
+ $('#start').textContent=state==='returned'||state==='cancelled'?'Again':'Start';
+ $('.run-id').textContent=run?.id?'run '+run.id.slice(0,8):'';
+ const ring=$('.ring');
+ if(running){const total=run.returnsAt-run.startedAt,left=Math.max(0,run.returnsAt-Date.now());ring.style.setProperty('--p',1-left/total);$('#left').textContent=fmt(Math.ceil(left/1000));$('#phase').textContent='Playing'}
+ else if(state==='returned'){ring.style.setProperty('--p',1);$('#left').textContent='Back';$('#phase').textContent='Event sent'}
+ else{ring.style.setProperty('--p',0);$('#left').textContent=fmt(seconds);$('#phase').textContent=state==='cancelled'?'Cancelled':'Ready'}
+ if(state==='returned'&&run.event&&!logged.has(run.event.eventId)){logged.add(run.event.eventId);log('emit','jensen.returned',run.event);note('')}
+}
+setInterval(async()=>{if(run?.state==='running'){if(Date.now()>=run.returnsAt){try{run=await client.state()}catch{}}render()}},250);
+
+async function act(fn){try{run=await fn();render()}catch(error){note(error.message,true);log('err',error.message)}}
+$('#start').onclick=()=>act(async()=>{const body={playSeconds:seconds,scene,message:$('#message').value.trim()||'He put the controller down.'};const r=await client.start(body);log('sched',`Started · ${words(seconds)} · ${scene}`);note('');return r});
+$('#now').onclick=()=>act(client.now);
+$('#cancel').onclick=()=>act(async()=>{const r=await client.cancel();log('cancel','Cancelled');note('');return r});
+$('#connect').onclick=async()=>{api.token=$('#token').value.trim().replace(/^Bearer\s+/i,'');try{run=await client.state();connected=true;conn(true,'Connected');$('#auth-field').hidden=true;note('');render()}catch(error){connected=false;conn(false,'Connection failed');note(error.message,true)}};
+if(sim){$('#auth-field').hidden=true;connected=true;conn(true,'Simulator');note('');render()}
+else{
+ // Reuse the session created on the demo home page (same origin).
+ try{const saved=JSON.parse(sessionStorage.getItem('mcp-events-demo'));if(saved?.token&&saved.expiresAt>Date.now()){$('#token').value=saved.token;$('#connect').click()}}catch{}
+}
+setSeconds(30);
+</script>
+</body>
+</html>

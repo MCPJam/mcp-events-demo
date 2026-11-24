@@ -1,5 +1,7 @@
 import { createJensen } from "../../jensen";
 import showHtml from "../../show.html";
+import controlHtml from "../../control.html";
+import { ShowRuns, controlHeaders, handleRunRequest, type ShowRun } from "../../show-runs";
 import { DurableObject } from "cloudflare:workers";
 import {
   EventsError,
@@ -55,6 +57,7 @@ export class EventsDemoSession extends DurableObject<Env> {
   private demo: ReturnType<typeof createDemo>;
   private expiresAt = 0;
   private mediaOrigin = "";
+  private runs!: ShowRuns;
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.demo = createDemo({
@@ -66,10 +69,18 @@ export class EventsDemoSession extends DurableObject<Env> {
       emitBuffer: { maxEvents: 256, maxAgeMs: 5 * 60_000 },
       defaultNextPollMs: 1000,
       checkIntervalMs: 1000,
-    }, events => createJensen(events, {
-      html: async () => showHtml,
-      mediaOrigin: () => this.mediaOrigin,
-    }));
+    }, events => {
+      const show = createJensen(events, {
+        html: async () => showHtml,
+        mediaOrigin: () => this.mediaOrigin,
+      });
+      // The run lives in this session's storage; the alarm fires it even if the isolate restarts.
+      this.runs = new ShowRuns(show.emit, {
+        get: () => ctx.storage.get<ShowRun>("jensenRun"),
+        put: run => ctx.storage.put("jensenRun", run),
+      }, () => this.reschedule());
+      return show.register;
+    });
     ctx.blockConcurrencyWhile(async () => {
       this.expiresAt = (await ctx.storage.get<number>("expiresAt")) ?? 0;
     });
@@ -87,7 +98,16 @@ export class EventsDemoSession extends DurableObject<Env> {
     }
     if (Date.now() >= this.expiresAt)
       return new Response("Expired session", { status: 401 });
-    return this.demo.handler.fetch(request);
+    return (await handleRunRequest(request, this.runs)) ?? this.demo.handler.fetch(request);
+  }
+  /** One alarm serves both the heartbeat and a pending Jensen return: whichever is sooner. */
+  private async reschedule() {
+    const now = Date.now();
+    const nextTick = (await this.ctx.storage.get<number>("nextTick")) ?? now + TICK_MS;
+    const run = await this.ctx.storage.get<ShowRun>("jensenRun");
+    let at = Math.min(Math.max(nextTick, now), this.expiresAt);
+    if (run?.state === "running") at = Math.min(at, run.returnsAt);
+    await this.ctx.storage.setAlarm(at);
   }
   async alarm() {
     if (Date.now() >= this.expiresAt) {
@@ -97,15 +117,19 @@ export class EventsDemoSession extends DurableObject<Env> {
       await this.ctx.storage.deleteAlarm();
       return;
     }
+    await this.runs.due();
     // Stable ID across alarm retries. Persist the next tick before performing delivery.
     const scheduledAt =
       (await this.ctx.storage.get<number>("nextTick")) ??
       Math.floor(Date.now() / TICK_MS) * TICK_MS;
-    await this.ctx.storage.setAlarm(
-      Math.min(Date.now() + TICK_MS, this.expiresAt),
-    );
-    await this.demo.tick(scheduledAt);
-    await this.ctx.storage.put("nextTick", scheduledAt + TICK_MS);
+    if (Date.now() >= scheduledAt) {
+      await this.ctx.storage.setAlarm(
+        Math.min(Date.now() + TICK_MS, this.expiresAt),
+      );
+      await this.demo.tick(scheduledAt);
+      await this.ctx.storage.put("nextTick", scheduledAt + TICK_MS);
+    }
+    await this.reschedule();
   }
 }
 
@@ -138,6 +162,8 @@ export default {
       return mediaResponse(request, env.ASSETS);
     }
     if (pathname === "/" && request.method === "GET") return landing();
+    if (pathname === "/jensen" && request.method === "GET")
+      return new Response(controlHtml, { headers: controlHeaders });
     if (pathname === "/health")
       return cors(
         Response.json({
@@ -145,7 +171,8 @@ export default {
           sdkCommit: "5ebb589b970bfc8f98e344e13299f8eb76ff8cd1",
         }),
       );
-    if (pathname !== "/sessions" && pathname !== "/mcp")
+    const isRun = pathname === "/jensen/run" || pathname === "/jensen/run/emit";
+    if (pathname !== "/sessions" && pathname !== "/mcp" && !isRun)
       return new Response("Not found", { status: 404 });
     if (!env.DEMO_SESSION_SECRET || env.DEMO_SESSION_SECRET.length < 32)
       return cors(new Response("Demo is not configured", { status: 503 }));

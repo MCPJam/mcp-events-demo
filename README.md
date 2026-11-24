@@ -22,6 +22,23 @@ using **Poll**. Leave the scene argument skipped for every scene, or set it to
 to run instructions on delivery. The stage player and the hosted trigger run
 are independently observable.
 
+### Control room
+
+Open **`/jensen`** on the server (for example `https://mcp-events.mcpjam.com/jensen`)
+in a separate window. Set how long Jensen plays GTA 6 (5 seconds to 10 minutes),
+choose the scene he returns to, and click **Start**. When the time runs out, the
+server emits `jensen.returned`; **Send now** emits immediately and **Cancel** stops
+the run without emitting. The page reuses the session created on the home page
+in the same browser, or accepts a pasted bearer token. The run is stored per
+session: in the Worker's Durable Object (fired by its alarm) or in memory with a
+timer on the local Node server. The API is `GET|POST|DELETE /jensen/run` and
+`POST /jensen/run/emit`, behind the same bearer token as `/mcp`.
+
+With the show open in MCPJam, the player loops the couch clip until a tool
+result carrying the event's `scene` reaches it, then shows the alert and plays
+the return scene. It never emits events itself. `npm run test:control` checks
+the schedule, send-now and cancel paths against a running server.
+
 The hosted Worker includes the show and its four clips. Create a session on
 the [demo home page](https://mcp-events.mcpjam.com) and connect to the HTTPS
 endpoint using the supplied bearer header. For local development, follow

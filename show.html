@@ -3,70 +3,121 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jensen is back</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap">
 <style>
-:root{color-scheme:dark;font:14px/1.5 system-ui,-apple-system,sans-serif;color:#f6f7f3;background:#101310}
-*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}button:disabled{cursor:wait;opacity:.5}button:focus-visible,input:focus-visible{outline:2px solid #c1f875;outline-offset:4px}
-.show{max-width:1100px;margin:auto;padding:22px}.topline,.footer,.title-row{display:flex;align-items:center;justify-content:space-between;gap:16px}.eyebrow{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#a1ab9b}.badge{font-size:10px;color:#bdc8b6;border:1px solid #36402f;padding:4px 9px;border-radius:30px;white-space:nowrap}.badge:before{content:"";display:inline-block;width:5px;height:5px;background:#baf57a;border-radius:50%;margin-right:6px}h1{font-weight:550;font-size:clamp(25px,5vw,38px);letter-spacing:-1.4px;line-height:1.15;margin:13px 0 5px}.subtitle{color:#a4aca0;margin:0 0 20px;font-size:13px}
-.screen{position:relative;background:#080a08;border:1px solid #30372b;border-radius:12px;overflow:hidden;aspect-ratio:16/9}video{display:block;width:100%;height:100%;object-fit:contain}video[hidden]{display:none}.cover{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:radial-gradient(ellipse at 50% 120%,#384b20,transparent 65%);padding:24px}.cover[hidden]{display:none}.cover strong{font-size:clamp(22px,4vw,36px);font-weight:500;letter-spacing:-1px}.cover p{color:#acb6a2;margin:8px 0 20px}.primary{justify-self:center;border:0;border-radius:100px;padding:12px 24px;background:#c0f47d;color:#18230c;font-weight:650}.primary:hover{background:#d3ffa1}
-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:14px 0 18px}nav button{text-align:left;border:1px solid #30372d;border-radius:8px;padding:10px 12px;background:#191e17;color:#b6bfb0;transition:background .15s}nav button:hover{background:#283021}nav button[aria-pressed=true]{border-color:#a0cc67;background:#28351c;color:#d8f4b5}.number{display:block;font-size:9px;letter-spacing:1px;color:#8b977f;margin-bottom:3px}.footer{font-size:11px;color:#9ba691;align-items:flex-start}label{display:flex;gap:7px;align-items:center}input{accent-color:#c0f47d;margin:0}.status{text-align:right;max-width:58%;margin:0}.status[data-error=true]{color:#ffb5a2}.note{font-size:10px;color:#6f7b65;margin:14px 0 0}.retry{color:#d8f4b5;background:transparent;border:1px solid #65794e;border-radius:6px;margin-top:8px;padding:5px 10px}.retry[hidden]{display:none}
-@media(max-width:520px){.show{padding:14px}nav{gap:5px}nav button{padding:8px;font-size:11px}.footer{flex-direction:column;gap:9px}.status{text-align:left;max-width:100%}.badge{font-size:9px}.subtitle{font-size:12px}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+:root{color-scheme:dark;--lav:#8e7cc3;--pink:#e98bb5;--peach:#f7b98f;--plum:#2b1f45;--white:#fffaf6;
+ --sans:Montserrat,"Avenir Next","Helvetica Neue",sans-serif;
+ font:400 14px/1.5 var(--sans);color:var(--white);background:#1c1430}
+*{box-sizing:border-box}body{margin:0;background:#1c1430}button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:1px solid var(--white);outline-offset:3px}
+main{max-width:1000px;margin:auto;padding:10px}
+.screen{position:relative;overflow:hidden;aspect-ratio:16/9;border-radius:6px;background:#000}
+video{display:block;width:100%;height:100%;object-fit:cover}video[hidden]{display:none}
+.shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#8e7cc355 0%,transparent 35%,transparent 60%,#2b1f45cc 100%);mix-blend-mode:normal;transition:background 1s}
+.caps{font:600 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 3px #000c}
+.state{position:absolute;left:22px;top:20px}
+.doing{color:var(--white)}
+.clock{position:absolute;right:22px;top:16px;text-align:right}
+.clock-label{display:block;margin-bottom:6px;color:#fffaf6d9}
+.elapsed{font:400 30px/1 var(--sans);color:var(--white);text-shadow:0 1px 6px #000a}
+.sound{position:absolute;right:20px;bottom:18px;border:0;background:none;padding:4px;color:var(--white)}
+.sound:hover{color:var(--white)}
+/* the moment */
+.alert{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;opacity:0;transition:opacity .8s;background:radial-gradient(60% 50% at 50% 55%,#2b1f45aa,transparent 75%)}
+.alert.on{opacity:1}
+.big{font:600 clamp(36px,7.5vw,72px)/1.05 var(--sans);letter-spacing:-.01em;color:var(--white);margin:0 0 8px;text-shadow:0 2px 10px #0009,0 0 30px #e98bb5aa}
+.alert.on .big{animation:glow 1.6s ease-out both}
+@keyframes glow{0%{opacity:0;filter:blur(6px)}40%{opacity:.6}55%{opacity:.25}70%,100%{opacity:1;filter:none}}
+.msg{margin:0;font-size:16px;font-weight:500;color:var(--white);text-shadow:0 1px 4px #000c}
+.meta{margin-top:14px;color:#fffaf6d9}.meta b{font-weight:500;color:var(--peach)}
+/* afterwards, a quiet caption */
+.alert.docked{inset:auto auto 18px 22px;place-content:end start;text-align:left;background:none}
+.alert.docked .big{font-size:24px;margin:0 0 2px}
+.alert.docked .meta{display:none}
+.alert.docked .msg{font-size:13px}
+.status{margin:8px 2px 0;font:400 13px/1.4 var(--sans);color:#cfc2ea}.status[data-error=true]{color:#ffb1c8}
+@media(max-width:520px){.state{left:14px;top:14px}.clock{right:14px;top:12px}.elapsed{font-size:22px}.alert.docked{left:14px;bottom:12px}.alert.docked .big{font-size:20px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<main class="show">
-<header><div class="topline"><span class="eyebrow">The comeback / An MCP events demo</span><span class="badge">Interactive show</span></div><h1>Where’s Jensen?</h1><p class="subtitle">Off the clock. Until the board calls.</p></header>
+<main>
 <div class="screen">
-<video data-scene="cold-open" controls playsinline preload="auto" hidden aria-label="Jensen on the couch"></video>
-<video data-scene="stage" controls playsinline preload="auto" hidden aria-label="Jensen is back on stage"></video>
-<video data-scene="locker-room" controls playsinline preload="auto" hidden aria-label="Jensen in the locker room"></video>
-<video data-scene="wolf" controls playsinline preload="auto" hidden aria-label="Jensen's comeback speech"></video>
-<div class="cover"><span class="eyebrow">One text changes everything</span><strong>He was just getting comfortable.</strong><p>Chips. Controller. An unexpected comeback.</p><button class="primary" id="start" disabled>Preparing the show…</button></div>
+ <video data-scene="cold-open" muted loop playsinline preload="auto" aria-label="Jensen on the couch, gaming"></video>
+ <video data-scene="stage" muted playsinline preload="auto" hidden aria-label="Jensen walks back on stage"></video>
+ <video data-scene="locker-room" muted playsinline preload="auto" hidden aria-label="Jensen in the locker room"></video>
+ <video data-scene="wolf" muted playsinline preload="auto" hidden aria-label="Jensen's comeback speech"></video>
+ <div class="shade"></div>
+ <div class="state caps"><span class="doing">Off the clock</span></div>
+ <div class="clock"><span class="clock-label caps">Playing</span><span class="elapsed">0:00</span></div>
+ <button class="sound caps" type="button">Sound off</button>
+ <section class="alert" role="alert" aria-live="assertive">
+  <div class="big">Jensen's back</div>
+  <p class="msg">He put the controller down.</p>
+  <div class="meta caps"><b class="ev-name">jensen.returned</b> · <span class="ev-id">—</span></div>
+ </section>
 </div>
-<nav aria-label="Choose a scene"><button data-clip="cold-open" disabled aria-pressed="false"><span class="number">01 / OFF DUTY</span>The couch</button><button data-clip="stage" disabled aria-pressed="false"><span class="number">02 / THE RETURN</span>He’s back</button><button data-clip="locker-room" disabled aria-pressed="false"><span class="number">03 / THE TEAM</span>Locker room</button><button data-clip="wolf" disabled aria-pressed="false"><span class="number">04 / THE SPEECH</span>Not leaving</button></nav>
-<div class="footer"><label><input type="checkbox" id="auto">Continue to the locker room</label><p class="status" role="status" aria-live="polite">Connecting to your host…</p></div>
-<button class="retry" hidden>Retry</button><p class="note">A fictional comeback, for demo purposes. Connect Jensen events in your host to receive the announcements.</p>
+<p class="status" role="status" aria-live="polite">Connecting…</p>
 </main>
 <script type="module">
-const status=document.querySelector('[role=status]'), start=document.querySelector('#start'), cover=document.querySelector('.cover'), retry=document.querySelector('.retry');
+// The server decides when Jensen returns. This app only renders: it never emits events.
+const $=selector=>document.querySelector(selector);
+const status=$('[role=status]'),alertBox=$('.alert'),screen=$('.screen');
 const videos=new Map([...document.querySelectorAll('video')].map(video=>[video.dataset.scene,video]));
-const names={'cold-open':'Off the clock',stage:'Jensen is back','locker-room':'Back with the team',wolf:'Not leaving'};
-const pending=new Map();let sequence=0,generation=0,current='',ready=false,hasMedia=false,lastAction=null,initialScene=null;
+const scenes={stage:'On stage','locker-room':'Locker room',wolf:'The speech'};
+const pending=new Map();let sequence=0,current='cold-open',since=Date.now(),seen=new Set(),sound=false,frozen=false,dockTimer;
 function announce(message,error=false){status.textContent=message;status.dataset.error=String(error)}
-function rpc(method,params){return new Promise((resolve,reject)=>{const id=++sequence;const timeout=setTimeout(()=>{pending.delete(id);reject(Error('The host did not respond. Please retry.'))},15000);pending.set(id,{resolve,reject,timeout});parent.postMessage({jsonrpc:'2.0',id,method,params},'*')})}
-async function tool(name,args){const result=await rpc('tools/call',{name,arguments:args});if(result.isError)throw Error(result.content?.[0]?.text||'The scene could not be cued.');return result}
-function updateReady(){const enabled=ready&&hasMedia;start.disabled=!enabled;start.textContent=enabled?'▶ Start the show':'Preparing the show…';document.querySelectorAll('[data-clip]').forEach(button=>button.disabled=!enabled)}
-function setMedia(media){if(!media)return;for(const [scene,video] of videos){const url=media[scene];if(typeof url!=='string')continue;const parsed=new URL(url);if(!['https:','http:'].includes(parsed.protocol))continue;if(video.src!==parsed.href){video.src=parsed.href;video.load()}}hasMedia=[...videos.values()].every(video=>video.hasAttribute('src'));updateReady()}
-async function play(scene,emit){
- if(!ready||!hasMedia)return;
- const turn=++generation;current=scene;lastAction={scene,emit};retry.hidden=true;cover.hidden=true;
- for(const [name,video] of videos){video.pause();video.hidden=name!==scene}
- document.querySelectorAll('[data-clip]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.clip===scene)));
- const video=videos.get(scene);video.currentTime=0;announce(names[scene]);
- // Playback never waits for an event delivery or an MCP media tool call.
- video.play().catch(()=>{if(turn===generation)announce('Press play on the video to continue.')});
- if(emit){try{await tool('cue_scene',{scene});if(turn===generation)announce(names[scene]+' · Event emitted')}catch(error){if(turn===generation){announce('Video playing · '+error.message,true);retry.hidden=false}}}
+function rpc(method,params){return new Promise((resolve,reject)=>{const id=++sequence;const timeout=setTimeout(()=>{pending.delete(id);reject(Error('The host did not respond.'))},15000);pending.set(id,{resolve,reject,timeout});parent.postMessage({jsonrpc:'2.0',id,method,params},'*')})}
+function text(selector,value){const node=$(selector);if(node)node.textContent=value}
+function setMedia(media){
+ if(!media)return;
+ for(const [scene,video] of videos){const url=media[scene];if(typeof url!=='string')continue;const parsed=new URL(url);if(!['https:','http:'].includes(parsed.protocol))continue;if(video.src!==parsed.href){video.src=parsed.href;video.load()}}
+ if(current==='cold-open')show('cold-open');
 }
+function show(scene){
+ current=scene;
+ for(const [name,video] of videos){if(name!==scene)video.pause();video.hidden=name!==scene;video.muted=!sound}
+ const video=videos.get(scene);
+ if(scene!=='cold-open')video.currentTime=0;
+ video.play?.().catch(()=>announce('Press play to start the video.'));
+}
+function tick(){const s=Math.floor((Date.now()-since)/1000);text('.elapsed',Math.floor(s/60)+':'+String(s%60).padStart(2,'0'))}
+function returned(data){
+ const scene=Object.hasOwn(scenes,data?.scene)?data.scene:'stage';
+ const id=data?.eventId?String(data.eventId):'';
+ if(id&&seen.has(id))return; if(id)seen.add(id);
+ screen?.classList?.add('back');$('.stars')?.classList?.add('hot');
+ text('.doing',scenes[scene]);text('.clock-label','Played');
+ text('.msg',data?.message||'Jensen is back.');text('.ev-id',id?id.slice(0,8):'—');text('.ev-scene',scene);
+ text('.alert time',new Date().toLocaleTimeString([], {hour12:false}));
+ if(alertBox?.classList){alertBox.classList.remove('docked','on');void alertBox.offsetWidth;alertBox.classList.add('on');clearTimeout(dockTimer);dockTimer=setTimeout(()=>alertBox.classList.add('docked'),4000)}
+ frozen=true;
+ show(scene);
+ announce('jensen.returned received');
+}
+// The gaming clock freezes at the moment the event lands.
+setInterval(()=>{if(!frozen)tick()},1000);
+$('.sound')?.addEventListener?.('click',event=>{sound=!sound;for(const video of videos.values())video.muted=!sound;event.currentTarget.textContent=sound?'Sound on':'Sound off';if(sound)videos.get(current).play?.().catch(()=>{})});
 for(const [scene,video] of videos){
- video.addEventListener('waiting',()=>{if(current===scene)announce('Buffering '+names[scene]+'…')});
- video.addEventListener('playing',()=>{if(current===scene)announce(names[scene])});
- video.addEventListener('error',()=>{if(current===scene){announce('This clip could not load. Please retry.',true);retry.hidden=false}});
- video.addEventListener('timeupdate',()=>{if(current==='cold-open'&&scene===current&&video.currentTime>=6.25)void play('stage',true)});
- video.addEventListener('ended',()=>{if(scene===current&&scene==='stage'&&document.querySelector('#auto').checked)void play('locker-room',true)});
+ video.addEventListener('error',()=>{if(current===scene)announce('This clip could not load.',true)});
+ video.addEventListener('ended',()=>{if(scene===current&&scene==='stage')show('locker-room')});
 }
 addEventListener('message',({source,data})=>{
  if(source!==parent||data?.jsonrpc!=='2.0')return;
  if(pending.has(data.id)){const call=pending.get(data.id);pending.delete(data.id);clearTimeout(call.timeout);if(data.error)call.reject(Error(data.error.message));else call.resolve(data.result);return}
- if(data.method==='ui/notifications/tool-result'){setMedia(data.params?._meta?.media);const scene=data.params?.structuredContent?.scene;if(Object.hasOwn(names,scene)&&current!==scene){if(ready)void play(scene,false);else initialScene=scene}}
+ if(data.method==='ui/notifications/tool-result'){
+  setMedia(data.params?._meta?.media);
+  const content=data.params?.structuredContent;
+  if(content?.scene&&Object.hasOwn(scenes,content.scene))returned(content);
+ }
 });
-start.onclick=()=>void play('cold-open',false);
-document.querySelector('nav').onclick=event=>{const clip=event.target.closest('[data-clip]')?.dataset.clip;if(clip)void play(clip,clip!=='cold-open')};
-retry.onclick=()=>{if(lastAction){videos.get(lastAction.scene).load();void play(lastAction.scene,lastAction.emit)}};
-try{await rpc('ui/initialize',{protocolVersion:'2026-01-26',appInfo:{name:'Jensen comeback show',version:'2.0.0'},appCapabilities:{}});ready=true;parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');updateReady();announce('Ready when you are.');
+try{
+ await rpc('ui/initialize',{protocolVersion:'2026-01-26',appInfo:{name:'Jensen comeback show',version:'3.0.0'},appCapabilities:{}});
+ parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}},'*');
+ announce('Waiting for jensen.returned');
  const resize=new ResizeObserver(()=>parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/size-changed',params:{height:document.querySelector('main').getBoundingClientRect().height}},'*'));resize.observe(document.querySelector('main'));
- // Compatibility with hosts that omit result metadata on a restored app.
- if(!hasMedia)setMedia((await tool('load_show_clip',{clip:'cold-open'}))._meta?.media);
- if(initialScene)void play(initialScene,false);
+ if(!videos.get('cold-open').getAttribute?.('src')){const result=await rpc('tools/call',{name:'load_show_clip',arguments:{clip:'cold-open'}});setMedia(result?._meta?.media)}
 }catch(error){announce(error.message,true)}
 </script>
 </body>
