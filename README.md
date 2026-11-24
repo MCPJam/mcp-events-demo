@@ -2,7 +2,9 @@
 
 A real MCP Events publisher, built with the **official TypeScript SDK**, that you can connect to MCPJam or another compatible client.
 
-**[Try the hosted demo](https://mcpjam-events-demo.marcelo-1cb.workers.dev)** · [Official SDK Events PR](https://github.com/modelcontextprotocol/typescript-sdk/pull/3209)
+**[Try the hosted demo](https://mcp-events.mcpjam.com)** · [Official SDK Events PR](https://github.com/modelcontextprotocol/typescript-sdk/pull/3209)
+
+Hosted MCP endpoint: **`https://mcp-events.mcpjam.com/mcp`**. Create a session on the home page to get its Authorization header.
 
 ## Try it in MCPJam
 
@@ -79,7 +81,7 @@ cd cloudflare
 npx wrangler login
 ```
 
-Choose a unique Worker `name` in `cloudflare/wrangler.jsonc`. Change the two rate-limit namespace IDs if those IDs already exist in your account. The config does not contain an account ID or production secrets.
+Choose a unique Worker `name` in `cloudflare/wrangler.jsonc`. Remove the `routes` entry for MCPJam's domain, or replace it with a domain in your own Cloudflare account. Change the two rate-limit namespace IDs if those IDs already exist in your account. The config does not contain an account ID or production secrets.
 
 ```sh
 npx wrangler deploy
@@ -88,7 +90,7 @@ npx wrangler secret put DEMO_SESSION_SECRET
 
 At the secret prompt, paste a fresh random secret of at least 32 characters, for example one generated with `openssl rand -hex 32`. Until this secret is configured, session creation and MCP access return `503`. Rotating it invalidates existing session tokens.
 
-Wrangler prints your permanent `workers.dev` address. Share the **home page**, where users create their own credentials, rather than sharing one user's token. A custom domain can be attached later. The landing page's source link points to this repository; update it for your fork if desired.
+Wrangler prints your `workers.dev` address and any configured custom domain. MCPJam's deployment uses `mcp-events.mcpjam.com`. Share the **home page**, where users create their own credentials, rather than sharing one user's token. The landing page's source link points to this repository; update it for your fork if desired.
 
 For local Cloudflare development, create `cloudflare/.dev.vars` with a **different** random secret:
 
@@ -97,6 +99,19 @@ DEMO_SESSION_SECRET=your-local-random-secret-at-least-32-characters
 ```
 
 Then run `npm --prefix cloudflare run dev` and visit `http://localhost:18891`. Never commit `.dev.vars` or share the session-signing secret.
+
+## Automatic deployments
+
+GitHub Actions runs the verification suite on pushes and pull requests. After a push to `main` passes verification, the `Deploy Cloudflare production` job builds and deploys that exact commit, then checks the live endpoint and session isolation. Pull requests and other branches do not deploy. Production deployments are serialized so an in-progress deployment is not cancelled halfway through.
+
+The repository's `production` environment is restricted to the `main` branch. It needs:
+
+- Environment secret `CLOUDFLARE_API_TOKEN`: a dedicated deployment token, scoped to the target Cloudflare account and custom-domain zone, with the permissions required to deploy Workers and maintain their routes.
+- Environment variable `CLOUDFLARE_ACCOUNT_ID`: the target account ID.
+
+The Worker's `DEMO_SESSION_SECRET` remains in Cloudflare; CI does not generate, read, or rotate it. GitHub's pull-request approval requirement still applies before changes can merge to `main`.
+
+For forks, configure these environment values and change the production URL in the workflow to your own hostname before enabling deployments.
 
 ## Architecture and limits
 
