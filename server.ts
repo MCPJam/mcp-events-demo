@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import {
   OAuthError,
@@ -28,7 +29,10 @@ const demo = createDemo({
   trustedOrigins: [`http://127.0.0.1:${receiverPort}`],
   checkIntervalMs: 250,
   defaultNextPollMs: 1000,
-}, jensen);
+}, jensen && (events => jensen(events, {
+  html: () => readFile(new URL("./show.html", import.meta.url), "utf8"),
+  video: async name => (await readFile(new URL("./cloudflare/assets/media/" + name + ".mp4", import.meta.url))).toString("base64"),
+})));
 
 const gate = requireBearerAuth({
   verifier: {

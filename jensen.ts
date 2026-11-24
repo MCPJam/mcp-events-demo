@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { fromJsonSchema, type McpServer } from "@modelcontextprotocol/server";
 import type { EventsExtension } from "@modelcontextprotocol/server/ext/events";
 import * as z from "zod/v4";
@@ -16,7 +15,12 @@ const uri = "ui://jensen/show.html";
 const mimeType = "text/html;profile=mcp-app";
 const ui = { resourceUri: uri };
 
-export function createJensen(events: EventsExtension) {
+export interface ShowAssets {
+  html(): Promise<string>;
+  video(name: z.infer<typeof clip>): Promise<string>;
+}
+
+export function createJensen(events: EventsExtension, assets: ShowAssets) {
   const event = events.registerEvent("jensen.returned", {
     emitOnly: true,
     description: "A scene cue for the Jensen comeback show. Filter by scene or receive all three.",
@@ -26,7 +30,7 @@ export function createJensen(events: EventsExtension) {
   });
   return (server: McpServer) => {
     server.registerResource("Jensen comeback show", uri, { mimeType }, async () => ({
-      contents: [{ uri, mimeType, text: await readFile(new URL("./show.html", import.meta.url), "utf8") }],
+      contents: [{ uri, mimeType, text: await assets.html() }],
     }));
     server.registerTool("open_show", {
       description: "Open the Jensen comeback show in MCPJam. Press Play cold open to begin.",
@@ -45,8 +49,8 @@ export function createJensen(events: EventsExtension) {
       description: "Load the selected demo clip for the embedded player.",
       inputSchema: z.object({ clip }), _meta: { ui: { visibility: ["app"] } },
     }, async ({ clip }) => {
-      const bytes = await readFile(new URL('./.runtime/media/' + clip + '.mp4', import.meta.url));
-      return { content: [], _meta: { video: bytes.toString("base64") } };
+      const video = await assets.video(clip);
+      return { content: [], _meta: { video } };
     });
   };
 }

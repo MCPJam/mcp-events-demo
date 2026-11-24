@@ -55,6 +55,26 @@ try {
   const a = await connect();
   const b = await connect();
   assert.notEqual(a.token, b.token);
+  const tools = await a.client.listTools();
+  for (const name of ["open_show", "cue_scene", "load_show_clip"])
+    assert.ok(tools.tools.some(tool => tool.name === name), name);
+  const app = await a.client.readResource({ uri: "ui://jensen/show.html" });
+  assert.ok(app.contents[0] && "text" in app.contents[0] && app.contents[0].text.includes("Play cold open"));
+  for (const clip of ["cold-open", "stage", "locker-room", "wolf"]) {
+    const result = await a.client.callTool({ name: "load_show_clip", arguments: { clip } });
+    const video = result._meta?.video;
+    assert.ok(typeof video === "string", clip);
+    assert.equal(Buffer.from(video, "base64").toString("ascii", 4, 8), "ftyp");
+  }
+  const sceneSub = await a.events.subscribe({ name: "jensen.returned", delivery: "poll", arguments: { scene: "stage" } });
+  subscriptions.push(sceneSub);
+  const cue = await a.client.callTool({ name: "cue_scene", arguments: { scene: "stage" } });
+  const receipt = cue.structuredContent;
+  assert.ok(receipt && typeof receipt === "object" && "eventId" in receipt);
+  assert.equal((await first(sceneSub)).eventId, receipt.eventId);
+  await sceneSub.cancel();
+  subscriptions.pop();
+  console.log("PASS: hosted show, all four MP4 clips, and matching Jensen stage event");
   for (const session of [a, b])
     subscriptions.push(
       await session.events.subscribe({ name: "demo.ping", delivery: "poll" }),

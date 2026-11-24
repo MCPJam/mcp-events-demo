@@ -22,13 +22,11 @@ using **Poll**. Leave the scene argument skipped for every scene, or set it to
 to run instructions on delivery. The stage player and the hosted trigger run
 are independently observable.
 
-For a new installation, run the setup below, put four H.264 MP4s named
-`cold-open.mp4`, `stage.mp4`, `locker-room.mp4`, and `wolf.mp4` in
-`.runtime/media/`, then start with `npm run start:show`. The demo's current
-workspace already contains the prepared clips. Use an opening clip with a
-mid-bite cue at 6.25 seconds. The app transfers clips over the authenticated
-MCP connection; use small encodes suitable for tool responses. The MIT source
-license covers the server code. Supply your own media for redistribution.
+The hosted Worker includes the show and its four clips. Create a session on
+the [demo home page](https://mcp-events.mcpjam.com) and connect to the HTTPS
+endpoint using the supplied bearer header. For local development, follow
+the setup below and run `npm run start:show`. The prepared clips are in
+`cloudflare/assets/media/`; the MIT license applies to the server source.
 
 ## Try it in MCPJam
 

@@ -56,7 +56,7 @@ try {
   assert.deepEqual(
     types.map((type) => [type.name, type.delivery]),
     [
-      ...(process.env.JENSEN_SHOW === "1" ? [["jensen.returned", ["poll", "push", "webhook"]]] : []),
+      ...(session || process.env.JENSEN_SHOW === "1" ? [["jensen.returned", ["poll", "push", "webhook"]]] : []),
       ["demo.ping", ["poll", "push", "webhook"]],
       ["timer.tick", ["poll", "push", "webhook"]],
     ],
